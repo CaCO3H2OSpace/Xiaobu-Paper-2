@@ -14,6 +14,30 @@ import VoiceRecordingPanel from './components/VoiceRecordingPanel';
 
 const NOTEBOOK_COLORS = ['#E5E7EB', '#F5E6E6', '#E6F5E9', '#E6EEF5', '#F5E6F0', '#F5F0E6'];
 
+const FALLBACK_QUOTES = [
+  {
+    text: "好记性不如烂笔头，记录是思考的延续。",
+    source: "笔记心得",
+    date: new Date().toLocaleDateString().replace(/\//g, '.'),
+    highlightedWords: ["烂笔头", "思考"],
+    highlightColor: "text-gray-900"
+  },
+  {
+    text: "温故而知新，可以为师矣。定期回顾你的笔记。",
+    source: "论语",
+    date: new Date().toLocaleDateString().replace(/\//g, '.'),
+    highlightedWords: ["温故而知新"],
+    highlightColor: "text-gray-900"
+  },
+  {
+    text: "灵感转瞬即逝，唯有记录永恒。",
+    source: "创作指南",
+    date: new Date().toLocaleDateString().replace(/\//g, '.'),
+    highlightedWords: ["灵感", "永恒"],
+    highlightColor: "text-gray-900"
+  }
+];
+
 const INITIAL_NOTEBOOKS: Notebook[] = [
   { id: '1', name: '产品洞察与思考', updatedAt: Date.now() - 86400000, createdAt: Date.now() - 86400000 },
 ];
@@ -311,10 +335,10 @@ export default function App() {
       }, 30000);
     } catch (error: any) {
       console.error("Failed to generate AI quote:", error);
-      setQuoteState(prev => ({ ...prev, isGenerating: false }));
       
-      // Improved rate limit detection
+      // Improved rate limit and server error detection
       let isRateLimit = false;
+      let isServerError = false;
       const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
       
       if (
@@ -325,6 +349,15 @@ export default function App() {
         errorStr.includes('RESOURCE_EXHAUSTED')
       ) {
         isRateLimit = true;
+      }
+
+      if (
+        error?.status === 500 ||
+        error?.error?.code === 500 ||
+        errorStr.includes('500') ||
+        errorStr.includes('Internal Server Error')
+      ) {
+        isServerError = true;
       }
       
       if (isRateLimit) {
@@ -338,8 +371,11 @@ export default function App() {
         if (!isPaidKeyConnected) {
           setQuoteState(prev => ({
             ...prev,
+            isGenerating: false,
             subtitle: "免费 API 配额已耗尽，建议连接付费 API 以获得更稳定的体验"
           }));
+        } else {
+          setQuoteState(prev => ({ ...prev, isGenerating: false }));
         }
 
         quoteTimeoutRef.current = setTimeout(() => {
@@ -347,7 +383,15 @@ export default function App() {
         }, backoffDelay);
       } else {
         setIsQuotaExceeded(false);
-        // For other errors, still try again later but maybe after a standard delay
+        // For other errors (including 500), use a fallback quote if we've tried a few times or it's a server error
+        if (isServerError || retryCountRef.current > 0) {
+          const fallback = FALLBACK_QUOTES[Math.floor(Math.random() * FALLBACK_QUOTES.length)];
+          setQuoteState({ ...fallback, isGenerating: false });
+        } else {
+          setQuoteState(prev => ({ ...prev, isGenerating: false }));
+        }
+
+        // Standard retry delay for non-rate-limit errors
         quoteTimeoutRef.current = setTimeout(() => {
           generateAIQuote();
         }, 60000);
@@ -686,13 +730,27 @@ export default function App() {
       setIsCreateMenuOpen(false);
       setTimeout(() => setCreateMenuState('default'), 200);
       setCurrentScreen('editor');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to parse link:", error);
+      
+      const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
+      const isRateLimit = errorStr.includes('429') || errorStr.includes('RESOURCE_EXHAUSTED');
+      const isServerError = errorStr.includes('500') || errorStr.includes('Internal Server Error');
+
+      let fallbackTitle = '外部链接解析内容';
+      let fallbackContent = '这是从外部链接解析出的正文内容总结。包含了文章的核心观点和主要信息。';
+      
+      if (isRateLimit) {
+        fallbackContent = '由于 API 配额限制，暂时无法自动解析该链接。已为您创建占位笔记，您可以稍后手动编辑或重试。';
+      } else if (isServerError) {
+        fallbackContent = '服务器暂时繁忙，无法解析该链接。已为您创建占位笔记。';
+      }
+
       // Fallback
       const newNote: Note = {
         id: crypto.randomUUID(),
-        title: '外部链接解析内容',
-        content: '这是从外部链接解析出的正文内容总结。包含了文章的核心观点和主要信息。',
+        title: fallbackTitle,
+        content: fallbackContent,
         tags: ['网文', '收藏'],
         notebookId: activeNotebookId,
         updatedAt: Date.now(),
