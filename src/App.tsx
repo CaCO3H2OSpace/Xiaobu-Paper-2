@@ -172,11 +172,62 @@ export default function App() {
   }>({
     text: "来都来了，记个东西\n万一有用呢",
     subtitle: "正在尝试摘录你曾经的笔记\n...",
-    highlightColor: "text-blue-500",
+    highlightColor: "text-gray-900",
     isGenerating: true
   });
   const [quoteHistory, setQuoteHistory] = useState<any[]>([]);
   const [isExcerptHistoryOpen, setIsExcerptHistoryOpen] = useState(false);
+
+  // Typing Animation State
+  const [displayText, setDisplayText] = useState(quoteState.text);
+  const [isMetadataVisible, setIsMetadataVisible] = useState(true);
+  const [displayMetadata, setDisplayMetadata] = useState({
+    source: quoteState.source,
+    date: quoteState.date,
+    highlightedWords: quoteState.highlightedWords,
+    highlightColor: quoteState.highlightColor
+  });
+
+  useEffect(() => {
+    // If text is fully typed and matches target
+    if (quoteState.text === displayText) {
+      if (!isMetadataVisible && !quoteState.isGenerating) {
+        // Show metadata after typing is complete
+        const timer = setTimeout(() => setIsMetadataVisible(true), 200);
+        return () => clearTimeout(timer);
+      }
+      return;
+    }
+
+    // If we need to change text, hide metadata first
+    if (isMetadataVisible && displayText.length > 0) {
+      setIsMetadataVisible(false);
+      // Wait for fade out before starting deletion
+      const timer = setTimeout(() => {}, 300);
+      return () => clearTimeout(timer);
+    }
+
+    const timer = setTimeout(() => {
+      if (displayText.length > 0 && !quoteState.text.startsWith(displayText)) {
+        // Deleting phase
+        setDisplayText(prev => prev.slice(0, -1));
+      } else if (displayText.length < quoteState.text.length) {
+        // Typing phase
+        if (displayText === "") {
+          // Update metadata exactly when we start typing the new one
+          setDisplayMetadata({
+            source: quoteState.source,
+            date: quoteState.date,
+            highlightedWords: quoteState.highlightedWords,
+            highlightColor: quoteState.highlightColor
+          });
+        }
+        setDisplayText(quoteState.text.slice(0, displayText.length + 1));
+      }
+    }, displayText.length > 0 && !quoteState.text.startsWith(displayText) ? 15 : 30);
+
+    return () => clearTimeout(timer);
+  }, [quoteState.text, displayText, isMetadataVisible, quoteState.isGenerating]);
 
   const isGeneratingRef = useRef(false);
 
@@ -212,7 +263,7 @@ export default function App() {
 - 这句话不能超过三行（约40-50个汉字以内）。
 - 适当插入最多 1 个 emoji，且该 emoji 应紧跟在相关的词汇后面，而不是统一放在句末。
 - 识别出句中最重要的 2-3 个词语进行重点标注。
-- 摘录的内容统一使用同一种高亮颜色，请根据摘录内容的风格从以下颜色中选择一个最合适的：text-blue-500, text-pink-500, text-orange-500, text-green-500, text-purple-500, text-red-500, text-teal-500, text-indigo-500, text-amber-500. 只返回颜色类名。
+- 摘录的内容统一使用同一种高亮颜色，请根据摘录内容的风格从以下颜色中选择一个最合适的：text-gray-900, text-black, text-gray-800, text-gray-700. 只返回颜色类名。
 - 输出格式为JSON。`,
           responseMimeType: "application/json",
           responseSchema: {
@@ -236,7 +287,7 @@ export default function App() {
         source: result.source,
         date: result.date,
         highlightedWords: result.highlightedWords,
-        highlightColor: result.highlightColor || "text-blue-500",
+        highlightColor: result.highlightColor || "text-gray-900",
         isGenerating: false
       };
       
@@ -304,7 +355,7 @@ export default function App() {
     });
 
     return parts.map((part, i) => (
-      <span key={i} className={part.isHighlight ? (quoteState.highlightColor || "text-blue-500") : ""}>
+      <span key={i} className={part.isHighlight ? (displayMetadata.highlightColor || "text-gray-900") : ""}>
         {part.text}
       </span>
     ));
@@ -666,7 +717,7 @@ export default function App() {
           setActiveNoteId(note.id); 
           setCurrentScreen('editor'); 
         }}
-        className={`bg-white rounded-2xl p-4 mb-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)] border ${isMultiSelectMode && selectedNoteIds.has(note.id) ? 'border-blue-500 bg-blue-50/30' : 'border-gray-50'} ${note.isGenerating ? 'cursor-default' : 'cursor-pointer'} relative overflow-hidden`}
+        className={`bg-white rounded-2xl p-4 mb-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)] border ${isMultiSelectMode && selectedNoteIds.has(note.id) ? 'border-gray-900 bg-gray-50/50' : 'border-gray-50'} ${note.isGenerating ? 'cursor-default' : 'cursor-pointer'} relative overflow-hidden`}
       >
         <AnimatePresence mode="popLayout" initial={false}>
           {note.isGenerating ? (
@@ -683,14 +734,14 @@ export default function App() {
                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent z-10" 
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-50/30 via-indigo-50/30 to-blue-50/30" />
+              <div className="absolute inset-0 bg-gradient-to-r from-gray-50/30 via-gray-100/30 to-gray-50/30" />
               <div className="relative z-20">
                 <div className="flex justify-between items-center mb-2">
                   <div className="flex items-center gap-2">
-                    <Loader2 size={14} className="text-blue-500 animate-spin" />
-                    <span className="text-[11px] font-medium text-blue-600">AI 正在生成中...</span>
+                    <Loader2 size={14} className="text-gray-900 animate-spin" />
+                    <span className="text-[11px] font-medium text-gray-900">AI 正在生成中...</span>
                   </div>
-                  <Sparkles size={14} className="text-blue-400" />
+                  <Sparkles size={14} className="text-gray-400" />
                 </div>
                 <h3 className="text-[16px] font-bold text-gray-400 leading-snug">
                   {note.title}
@@ -709,9 +760,9 @@ export default function App() {
             {note.isUnviewed && (
               <div className="absolute bottom-0 right-0 w-12 h-12 pointer-events-none z-20">
                 {/* Cutout background (matches app background) */}
-                <div className="absolute bottom-0 right-0 w-full h-full bg-[#F7F8FA] md:bg-gray-100" style={{ clipPath: 'polygon(100% 0, 0 100%, 100% 100%)' }} />
+                <div className="absolute bottom-0 right-0 w-full h-full bg-white" style={{ clipPath: 'polygon(100% 0, 0 100%, 100% 100%)' }} />
                 {/* Fold flap */}
-                <div className="absolute bottom-0 right-0 w-full h-full bg-gradient-to-br from-white to-gray-100 shadow-[-2px_-2px_4px_rgba(0,0,0,0.08)] rounded-tl-lg" style={{ clipPath: 'polygon(100% 0, 0 100%, 0 0)' }} />
+                <div className="absolute bottom-0 right-0 w-full h-full bg-gradient-to-br from-white to-gray-50 shadow-[-2px_-2px_4px_rgba(0,0,0,0.08)] rounded-tl-lg" style={{ clipPath: 'polygon(100% 0, 0 100%, 0 0)' }} />
                 <div className="absolute inset-0 flex items-center justify-center -translate-x-1 -translate-y-1">
                    <span className="text-[9px] font-bold text-yellow-500 -rotate-45">未查看</span>
                 </div>
@@ -720,7 +771,7 @@ export default function App() {
 
             {isMultiSelectMode && (
               <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-                 <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selectedNoteIds.has(note.id) ? 'bg-blue-500 border-blue-500' : 'border-gray-300 bg-white'}`}>
+                 <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selectedNoteIds.has(note.id) ? 'bg-gray-900 border-gray-900' : 'border-gray-300 bg-white'}`}>
                    {selectedNoteIds.has(note.id) && <Check size={12} className="text-white" />}
                  </div>
               </div>
@@ -752,7 +803,7 @@ export default function App() {
                 <div className="flex flex-wrap gap-2 mb-2">
                   {sortTags(note.tags).map(tag => {
                     return (
-                      <span key={tag} className="text-blue-600 text-[12px] font-medium flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-md">
+                      <span key={tag} className="text-gray-900 text-[12px] font-medium flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded-md">
                         {tag}
                       </span>
                     );
@@ -767,9 +818,9 @@ export default function App() {
 
               {/* Link Card */}
               {note.link && (
-                <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 mb-3 border border-gray-100">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
-                    <LinkIcon size={18} className="text-blue-600" />
+                <div className="flex items-center gap-3 bg-white rounded-xl p-3 mb-3 border border-gray-100">
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+                    <LinkIcon size={18} className="text-gray-900" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{note.link.source}</p>
@@ -780,7 +831,7 @@ export default function App() {
               
               {/* Attachments (Important Info) */}
               {note.audioDuration ? (
-                <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 w-full">
+                <div className="flex items-center gap-3 bg-white rounded-xl p-3 w-full border border-gray-100">
                   <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 shrink-0">
                     <Mic size={16} />
                   </div>
@@ -863,118 +914,129 @@ export default function App() {
   // Renderers
   const renderHome = () => (
     <div className="flex flex-col h-full relative">
-      {isMultiSelectMode ? (
-        <div className="flex items-center justify-between px-5 pt-12 pb-4 border-b border-gray-100 bg-white shrink-0">
-          <button onClick={() => { setIsMultiSelectMode(false); setSelectedNoteIds(new Set()); }} className="text-[15px] text-gray-600 font-medium">
-            取消
-          </button>
-          <span className="text-[17px] font-semibold text-gray-900">已选择 {selectedNoteIds.size} 项</span>
-          <button 
-            onClick={() => {
-              if (selectedNoteIds.size === notes.length) {
-                setSelectedNoteIds(new Set());
-              } else {
-                setSelectedNoteIds(new Set(notes.map(n => n.id)));
-              }
-            }} 
-            className="text-[15px] text-blue-600 font-medium"
-          >
-            {selectedNoteIds.size === notes.length ? '全不选' : '全选'}
-          </button>
-        </div>
-      ) : (
-        <>
-          {/* Header & Excerpt Area */}
-          <div className="px-5 pt-10 pb-6 shrink-0 relative">
-            {/* Top Bar */}
-            <div className="flex items-center justify-between mb-5">
-              <div className="text-gray-900">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
-                </svg>
-              </div>
-              <div className="flex items-center gap-3">
-                <button className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors">
-                  <Search size={20} className="stroke-[2]" />
-                </button>
-                <button className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors">
-                  <Settings size={20} className="stroke-[2]" />
-                </button>
-              </div>
-            </div>
-
-            {/* Quote Content */}
-            <div className="relative h-[160px] flex flex-col justify-center">
-              <div className="pr-4">
-                <h2 className={`font-bold text-gray-900 leading-snug mb-3 max-w-[90%] whitespace-pre-line ${getQuoteFontSize(quoteState.text)}`}>
-                  {renderHighlightedText(quoteState.text, quoteState.highlightedWords)}
-                </h2>
-                
-                <div className="flex flex-col gap-1">
-                  {quoteState.isGenerating ? (
-                    <p className="text-[13px] text-gray-400 animate-pulse whitespace-pre-line">{quoteState.subtitle}</p>
-                  ) : quoteState.source ? (
-                    <div className="flex flex-col gap-1">
-                      <p className="text-[13px] text-gray-400 truncate max-w-[250px]">
-                        —— 《{quoteState.source.length > 15 ? quoteState.source.substring(0, 15) + '...' : quoteState.source}》
-                      </p>
-                      <p className="text-[12px] text-gray-400">记于 {quoteState.date}</p>
-                    </div>
-                  ) : (
-                    <p className="text-[13px] text-gray-400 whitespace-pre-line">{quoteState.subtitle}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* View More */}
-              <div className="absolute right-0 bottom-0">
-                <button 
-                  className="flex items-center gap-1 text-[12px] text-gray-400 transition-colors cursor-default"
-                >
-                  <ChevronDown size={14} />
-                  查看更多摘录
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <div className="flex items-center justify-between px-5 pb-3 border-b border-gray-100 shrink-0">
-            <div className="flex gap-5 items-baseline">
-              <button 
-                onClick={() => { setActiveTab('notes'); setActiveNotebookId(null); }}
-                className={`text-[22px] font-bold transition-colors ${activeTab === 'notes' ? 'text-gray-900' : 'text-gray-300'}`}
-              >
-                全部笔记
-              </button>
-              <button 
-                onClick={() => { setActiveTab('notebooks'); setActiveNotebookId(null); }}
-                className={`text-[22px] font-bold transition-colors ${activeTab === 'notebooks' ? 'text-gray-900' : 'text-gray-300'}`}
-              >
-                笔记本
-              </button>
-            </div>
-            <button className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors">
-              <Grid size={20} />
+      <div className="flex-1 overflow-y-auto no-scrollbar">
+        {isMultiSelectMode ? (
+          <div className="sticky top-0 z-30 flex items-center justify-between px-5 pt-12 pb-4 border-b border-gray-100 bg-white">
+            <button onClick={() => { setIsMultiSelectMode(false); setSelectedNoteIds(new Set()); }} className="text-[15px] text-gray-600 font-medium">
+              取消
+            </button>
+            <span className="text-[17px] font-semibold text-gray-900">已选择 {selectedNoteIds.size} 项</span>
+            <button 
+              onClick={() => {
+                if (selectedNoteIds.size === notes.length) {
+                  setSelectedNoteIds(new Set());
+                } else {
+                  setSelectedNoteIds(new Set(notes.map(n => n.id)));
+                }
+              }} 
+              className="text-[15px] text-gray-900 font-medium"
+            >
+              {selectedNoteIds.size === notes.length ? '全不选' : '全选'}
             </button>
           </div>
-        </>
-      )}
-
-      {/* Content List */}
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-32">
-        {activeTab === 'notes' ? (
-          [...notes].sort((a, b) => b.updatedAt - a.updatedAt).map(note => 
-            renderNoteCard(note, false)
-          )
         ) : (
           <>
-            {notebooks.map(nb => (
-              <NotebookCard key={nb.id} notebook={nb} />
-            ))}
+            {/* Top Bar (Sticky) */}
+            <div className="sticky top-0 z-30 bg-white px-5 pt-12 pb-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div className="text-gray-900">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                  </svg>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors">
+                    <Search size={20} className="stroke-[2]" />
+                  </button>
+                  <button className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors">
+                    <Settings size={20} className="stroke-[2]" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Excerpt Area (Scrolls with page) */}
+            <div className="px-5 pb-6 relative">
+              <div className="relative h-[160px] flex flex-col justify-center">
+                <div className="pr-4">
+                  <h2 className={`font-bold text-gray-900 leading-snug mb-3 max-w-[90%] whitespace-pre-line ${getQuoteFontSize(quoteState.text)}`}>
+                    {renderHighlightedText(displayText, displayMetadata.highlightedWords)}
+                  </h2>
+                  
+                  <motion.div 
+                    initial={false}
+                    animate={{ opacity: isMetadataVisible ? 1 : 0, y: isMetadataVisible ? 0 : 5 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="flex flex-col gap-1"
+                  >
+                    {quoteState.isGenerating ? (
+                      <p className="text-[13px] text-gray-400 animate-pulse whitespace-pre-line">{quoteState.subtitle}</p>
+                    ) : displayMetadata.source ? (
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[13px] text-gray-400 truncate max-w-[250px]">
+                          —— 《{displayMetadata.source.length > 15 ? displayMetadata.source.substring(0, 15) + '...' : displayMetadata.source}》
+                        </p>
+                        <p className="text-[12px] text-gray-400">记于 {displayMetadata.date}</p>
+                      </div>
+                    ) : (
+                      <p className="text-[13px] text-gray-400 whitespace-pre-line">{quoteState.subtitle}</p>
+                    )}
+                  </motion.div>
+                </div>
+
+                {/* View More */}
+                {displayMetadata.source && !quoteState.isGenerating && (
+                  <div className="absolute right-0 bottom-0">
+                    <button 
+                      className="flex items-center gap-1 text-[12px] text-gray-400 transition-colors cursor-default"
+                    >
+                      <ChevronDown size={14} />
+                      深度讨论
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Tabs (Sticky) */}
+            <div className="sticky top-[104px] z-20 bg-white flex items-center justify-between px-5 py-2 border-b border-gray-100">
+              <div className="flex gap-5 items-center">
+                <button 
+                  onClick={() => { setActiveTab('notes'); setActiveNotebookId(null); }}
+                  className={`text-[18px] font-bold transition-colors ${activeTab === 'notes' ? 'text-gray-900' : 'text-gray-300'}`}
+                >
+                  全部笔记
+                </button>
+                <button 
+                  onClick={() => { setActiveTab('notebooks'); setActiveNotebookId(null); }}
+                  className={`text-[18px] font-bold transition-colors ${activeTab === 'notebooks' ? 'text-gray-900' : 'text-gray-300'}`}
+                >
+                  笔记本
+                </button>
+              </div>
+              <button className="w-9 h-9 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors">
+                <Grid size={18} />
+              </button>
+            </div>
           </>
         )}
+
+        {/* Content List */}
+        <div className="px-4 pt-4 pb-32">
+          {activeTab === 'notes' ? (
+            [...notes].sort((a, b) => b.updatedAt - a.updatedAt).map(note => 
+              renderNoteCard(note, false)
+            )
+          ) : (
+            <>
+              {notebooks.map(nb => (
+                <NotebookCard key={nb.id} notebook={nb} />
+              ))}
+            </>
+          )}
+        </div>
       </div>
+
 
       {/* Multi-select Bottom Bar */}
       {isMultiSelectMode && activeTab === 'notes' && (
@@ -985,7 +1047,7 @@ export default function App() {
               setIsMultiSelectMode(false);
               setSelectedNoteIds(new Set());
             }}
-            className="flex flex-col items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors"
+            className="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-900 transition-colors"
           >
             <FolderPlus size={22} />
             <span className="text-[11px] font-medium">移动</span>
@@ -996,7 +1058,7 @@ export default function App() {
               setIsMultiSelectMode(false);
               setSelectedNoteIds(new Set());
             }}
-            className="flex flex-col items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors"
+            className="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-900 transition-colors"
           >
             <Bookmark size={22} />
             <span className="text-[11px] font-medium">标记未查看</span>
@@ -1022,7 +1084,7 @@ export default function App() {
     const notebookNotes = notes.filter(n => n.notebookId === activeNotebook.id);
     
     return (
-      <div className="flex flex-col h-full bg-gray-50 relative">
+      <div className="flex flex-col h-full bg-white relative">
         {isMultiSelectMode ? (
           <div className="flex items-center justify-between px-4 pt-12 pb-4 bg-white border-b border-gray-100 shrink-0">
             <button onClick={() => { setIsMultiSelectMode(false); setSelectedNoteIds(new Set()); }} className="text-[15px] text-gray-600 font-medium">
@@ -1037,7 +1099,7 @@ export default function App() {
                   setSelectedNoteIds(new Set(notebookNotes.map(n => n.id)));
                 }
               }} 
-              className="text-[15px] text-blue-600 font-medium"
+              className="text-[15px] text-gray-900 font-medium"
             >
               {selectedNoteIds.size === notebookNotes.length ? '全不选' : '全选'}
             </button>
@@ -1089,7 +1151,7 @@ export default function App() {
                 setIsMultiSelectMode(false);
                 setSelectedNoteIds(new Set());
               }}
-              className="flex flex-col items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors"
+              className="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-900 transition-colors"
             >
               <FolderPlus size={22} />
               <span className="text-[11px] font-medium">移动</span>
@@ -1100,7 +1162,7 @@ export default function App() {
                 setIsMultiSelectMode(false);
                 setSelectedNoteIds(new Set());
               }}
-              className="flex flex-col items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors"
+              className="flex flex-col items-center gap-1 text-gray-500 hover:text-gray-900 transition-colors"
             >
               <Bookmark size={22} />
               <span className="text-[11px] font-medium">标记未查看</span>
@@ -1131,7 +1193,7 @@ export default function App() {
             <ChevronLeft size={24} />
           </button>
           <div className="flex items-center gap-2">
-            <button onClick={() => setCurrentScreen(activeNotebookId ? 'notebook_detail' : 'home')} className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors">
+            <button onClick={() => setCurrentScreen(activeNotebookId ? 'notebook_detail' : 'home')} className="px-3 py-1.5 text-sm font-medium text-gray-900 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
               完成
             </button>
           </div>
@@ -1149,7 +1211,7 @@ export default function App() {
           <div className="flex flex-wrap items-center gap-2 mb-4">
             {sortTags(activeNote.tags).map(tag => {
               return (
-                <span key={tag} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[13px] font-medium bg-blue-50 text-blue-600">
+                <span key={tag} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[13px] font-medium bg-gray-100 text-gray-900">
                   {tag}
                 </span>
               );
@@ -1170,7 +1232,7 @@ export default function App() {
                   setNoteForTagEditorId(activeNote.id);
                   setIsTagEditorOpen(true);
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[13px] font-medium bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[13px] font-medium bg-white border border-gray-100 text-gray-500 hover:bg-gray-50 transition-colors"
               >
                 <Plus size={14} />
                 添加标签
@@ -1187,9 +1249,9 @@ export default function App() {
           </div>
 
           {activeNote.link && (
-            <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
-                <LinkIcon size={20} className="text-blue-600" />
+            <div className="flex items-center gap-3 bg-white rounded-xl p-4 mb-6 border border-gray-100">
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+                <LinkIcon size={20} className="text-gray-900" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[15px] font-medium text-gray-900 truncate">{activeNote.link.source}</p>
@@ -1201,7 +1263,7 @@ export default function App() {
           {activeNote.images && activeNote.images.length > 0 && (
             <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
               {activeNote.images.map((img, i) => (
-                <div key={i} className="w-32 aspect-video bg-gray-100 rounded-xl overflow-hidden shrink-0">
+                <div key={i} className="w-32 aspect-video bg-gray-50 rounded-xl overflow-hidden shrink-0 border border-gray-100">
                   <img src={`https://picsum.photos/seed/podcast${i+1}/200/120`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 </div>
               ))}
@@ -1239,9 +1301,9 @@ export default function App() {
   };
 
   return (
-    <div className="fixed inset-0 w-full bg-[#F7F8FA] md:bg-gray-100 flex items-center justify-center p-0 md:p-4 font-sans overflow-hidden">
+    <div className="fixed inset-0 w-full bg-white flex items-center justify-center p-0 md:p-4 font-sans overflow-hidden">
       {/* Mobile Simulator Container */}
-      <div className="w-full h-full md:h-[844px] md:w-[390px] bg-[#F7F8FA] md:rounded-[40px] md:shadow-2xl relative overflow-hidden border-0 md:border-[8px] border-gray-900 flex flex-col">
+      <div className="w-full h-full md:h-[844px] md:w-[390px] bg-white md:rounded-[40px] md:shadow-2xl relative overflow-hidden border-0 md:border-[8px] border-gray-900 flex flex-col">
         
         {currentScreen === 'home' && renderHome()}
         {currentScreen === 'notebook_detail' && renderNotebookDetail()}
@@ -1425,7 +1487,7 @@ export default function App() {
                                   }
                                 }}
                               >
-                                <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-2xl shadow-sm border border-gray-100">
+                <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center text-2xl shadow-sm border border-gray-100">
                                   {item.icon}
                                 </div>
                                 <span className="text-[11px] text-gray-600 font-medium">{item.label}</span>
@@ -1435,25 +1497,25 @@ export default function App() {
                         </div>
 
                         {/* Recommendations Section */}
-                        <div className="flex-1 bg-gray-50/50 rounded-t-3xl p-4 overflow-y-auto no-scrollbar">
+                        <div className="flex-1 bg-white rounded-t-3xl p-4 overflow-y-auto no-scrollbar border-t border-gray-100">
                           <h3 className="text-[15px] font-bold text-gray-900 mb-4">推荐</h3>
                           <div className="space-y-3">
                             {/* Recommendation 1: Photos */}
                             <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                               <div className="flex items-center gap-2 mb-3">
-                                <div className="w-5 h-5 rounded-md bg-blue-100 flex items-center justify-center">
-                                  <ImageIcon size={12} className="text-blue-600" />
+                                <div className="w-5 h-5 rounded-md bg-gray-100 flex items-center justify-center">
+                                  <ImageIcon size={12} className="text-gray-900" />
                                 </div>
                                 <span className="text-[12px] font-medium text-gray-700">昨天新增了一组照片，帮我生成笔记</span>
                               </div>
                               <div className="flex gap-2 mb-4">
-                                <div className="flex-1 aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                                <div className="flex-1 aspect-video bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
                                   <img src="https://picsum.photos/seed/podcast1/200/120" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                 </div>
-                                <div className="flex-1 aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                                <div className="flex-1 aspect-video bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
                                   <img src="https://picsum.photos/seed/podcast2/200/120" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                 </div>
-                                <div className="flex-1 aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                                <div className="flex-1 aspect-video bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
                                   <img src="https://picsum.photos/seed/podcast3/200/120" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                 </div>
                               </div>
@@ -1481,7 +1543,7 @@ export default function App() {
                                 </div>
                                 <span className="text-[12px] font-medium text-gray-700">刚才新增了1条26min录音，帮我生成笔记</span>
                               </div>
-                              <div className="bg-gray-50 rounded-xl p-3 mb-4">
+                              <div className="bg-white border border-gray-100 rounded-xl p-3 mb-4">
                                 <div className="flex items-center gap-3">
                                   <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white">
                                     <PlaySquare size={16} />
@@ -1521,7 +1583,7 @@ export default function App() {
                                 </div>
                                 <span className="text-[12px] font-medium text-gray-700">刚才下载了1个PDF文档，帮我提炼重点</span>
                               </div>
-                              <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 mb-4">
+                              <div className="flex items-center gap-3 bg-white border border-gray-100 rounded-xl p-3 mb-4">
                                 <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center text-red-500">
                                   <FileText size={20} />
                                 </div>
@@ -1571,12 +1633,12 @@ export default function App() {
                             onKeyDown={(e) => e.key === 'Enter' && handleParseExternalLink()}
                             placeholder="请粘贴链接..." 
                             disabled={isParsingLink}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-50"
+                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/20 focus:border-gray-900 transition-all disabled:opacity-50"
                           />
                           <button 
                             onClick={handleParseExternalLink}
                             disabled={isParsingLink || !externalLinkInput.trim()}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                           >
                             {isParsingLink ? (
                               <>
@@ -1606,21 +1668,21 @@ export default function App() {
                           {/* Progress Steps */}
                           <div className="flex items-center justify-center gap-2 mb-4">
                             <div className="flex items-center gap-2">
-                              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${analysisProgress > 30 ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'}`}>
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${analysisProgress > 30 ? 'bg-green-500 text-white' : 'bg-gray-900 text-white'}`}>
                                 {analysisProgress > 30 ? <Check size={12} /> : '1'}
                               </div>
                               <span className="text-[12px] font-medium text-gray-900">读取</span>
                             </div>
                             <div className="w-4 h-px bg-gray-200" />
                             <div className="flex items-center gap-2">
-                              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${analysisProgress > 70 ? 'bg-green-500 text-white' : analysisProgress > 30 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${analysisProgress > 70 ? 'bg-green-500 text-white' : analysisProgress > 30 ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-400'}`}>
                                 {analysisProgress > 70 ? <Check size={12} /> : '2'}
                               </div>
                               <span className="text-[12px] font-medium text-gray-900">分析</span>
                             </div>
                             <div className="w-4 h-px bg-gray-200" />
                             <div className="flex items-center gap-2">
-                              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${analysisProgress === 100 ? 'bg-green-500 text-white' : analysisProgress > 70 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${analysisProgress === 100 ? 'bg-green-500 text-white' : analysisProgress > 70 ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-400'}`}>
                                 '3'
                               </div>
                               <span className="text-[12px] font-medium text-gray-400">生成</span>
@@ -1645,14 +1707,14 @@ export default function App() {
                               <h2 className="text-sm font-bold text-gray-800">核心摘要</h2>
                               <div className="space-y-2">
                                 <div className="flex gap-2">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                                  <div className="w-1.5 h-1.5 rounded-full bg-gray-900 mt-1.5 shrink-0" />
                                   <p className="text-[13px] text-gray-600 leading-relaxed">
                                     {analysisTarget?.generatedContent?.substring(0, 50)}...
                                   </p>
                                 </div>
                                 {analysisProgress > 60 && (
                                   <div className="flex gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-gray-900 mt-1.5 shrink-0" />
                                     <p className="text-[13px] text-gray-600 leading-relaxed">
                                       基于附件内容，AI 自动识别了关键节点并进行了结构化整理。
                                     </p>
@@ -1669,7 +1731,7 @@ export default function App() {
                               <h2 className="text-sm font-bold text-gray-800">智能标签</h2>
                               <div className="flex gap-2 flex-wrap">
                                 {analysisTarget?.tags.map((tag: string) => (
-                                  <span key={tag} className="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-medium">
+                                  <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-900 rounded-lg text-[10px] font-medium">
                                     #{tag}
                                   </span>
                                 ))}
@@ -1683,7 +1745,7 @@ export default function App() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.3 }}
                             onClick={handleViewLater}
-                            className="w-full bg-blue-600 text-white rounded-2xl py-3.5 font-bold text-[15px] shadow-[0_8px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 transition-colors mt-2"
+                            className="w-full bg-gray-900 text-white rounded-2xl py-3.5 font-bold text-[15px] shadow-[0_8px_20px_rgba(0,0,0,0.15)] hover:bg-black transition-colors mt-2"
                           >
                             稍后查看
                           </motion.button>
@@ -1740,8 +1802,8 @@ export default function App() {
                       animate={{
                         width: isCreateMenuOpen ? "calc(100% - 152px)" : 64,
                         left: isCreateMenuOpen ? "76px" : "calc(50% - 32px)",
-                        backgroundColor: "#2563eb",
-                        boxShadow: isCreateMenuOpen ? "0 8px 20px rgba(37,99,235,0.3)" : "0 8px 20px rgba(37,99,235,0.4)",
+                        backgroundColor: "#111827",
+                        boxShadow: isCreateMenuOpen ? "0 8px 20px rgba(0,0,0,0.2)" : "0 8px 20px rgba(0,0,0,0.3)",
                       }}
                       style={{ borderRadius: 32 }}
                       exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.1 } }}
@@ -1834,14 +1896,14 @@ export default function App() {
                           key={color}
                           type="button"
                           onClick={() => { setModalCoverColor(color); setModalCoverImage(null); }}
-                          className={`w-8 h-8 rounded-full border-2 transition-all ${modalCoverColor === color && !modalCoverImage ? 'border-blue-500 scale-110' : 'border-transparent hover:scale-105'}`}
+                          className={`w-8 h-8 rounded-full border-2 transition-all ${modalCoverColor === color && !modalCoverImage ? 'border-gray-900 scale-110' : 'border-transparent hover:scale-105'}`}
                           style={{ backgroundColor: color }}
                         />
                       ))}
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <label className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-50 border border-gray-200 rounded-xl text-[14px] text-gray-600 font-medium cursor-pointer hover:bg-gray-100 transition-colors">
+                      <label className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-gray-100 rounded-xl text-[14px] text-gray-600 font-medium cursor-pointer hover:bg-gray-50 transition-colors">
                         <ImageIcon size={16} />
                         {modalCoverImage ? '更换封面图片' : '上传封面图片'}
                         <input 
@@ -1887,7 +1949,7 @@ export default function App() {
                     name="name" 
                     defaultValue={editingNotebook?.name || ''} 
                     required
-                    className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-[15px]"
+                    className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl focus:bg-white focus:border-gray-900 focus:ring-2 focus:ring-gray-100 outline-none transition-all text-[15px]"
                     placeholder="例如：旅行计划"
                   />
                 </div>
@@ -1905,7 +1967,7 @@ export default function App() {
                     )}
                     <button
                       type="submit"
-                      className="flex-[2] py-3.5 text-[15px] font-medium text-white bg-blue-600 rounded-xl active:bg-blue-700 transition-colors shadow-sm shadow-blue-200"
+                      className="flex-[2] py-3.5 text-[15px] font-medium text-white bg-gray-900 rounded-xl active:bg-black transition-colors shadow-sm shadow-gray-200"
                     >
                       保存
                     </button>
@@ -1940,7 +2002,7 @@ export default function App() {
                   {/* Tags Section */}
                   <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
                     {sortTags(currentNote.tags).map(tag => (
-                      <span key={tag} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-medium bg-blue-50 text-blue-600">
+                      <span key={tag} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-medium bg-gray-100 text-gray-900">
                         {tag}
                       </span>
                     ))}
@@ -1950,7 +2012,7 @@ export default function App() {
                         setIsTagEditorOpen(true);
                         setIsNoteOptionsOpen(false);
                       }}
-                      className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors border border-gray-100"
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white text-gray-500 hover:bg-gray-50 transition-colors border border-gray-100"
                     >
                       <Plus size={14} />
                     </button>
@@ -2072,9 +2134,9 @@ export default function App() {
                       setIsAddToNotebookOpen(false);
                       setIsNoteOptionsOpen(false);
                     }}
-                    className="w-full flex items-center gap-3 p-4 rounded-xl border border-gray-100 hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
+                    className="w-full flex items-center gap-3 p-4 rounded-xl border border-gray-100 hover:border-gray-900 hover:bg-gray-50 transition-colors text-left"
                   >
-                    <Book size={20} className="text-blue-600" />
+                    <Book size={20} className="text-gray-900" />
                     <span className="font-medium text-gray-900">{nb.name}</span>
                   </button>
                 ))}
@@ -2108,7 +2170,7 @@ export default function App() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setIsRemoveConfirmOpen(false)}
-                    className="flex-1 py-3 text-[15px] font-medium text-gray-700 bg-gray-100 rounded-xl active:bg-gray-200 transition-colors"
+                    className="flex-1 py-3 text-[15px] font-medium text-gray-700 bg-white border border-gray-100 rounded-xl active:bg-gray-50 transition-colors"
                   >
                     取消
                   </button>
@@ -2118,7 +2180,7 @@ export default function App() {
                       setIsRemoveConfirmOpen(false);
                       setIsNoteOptionsOpen(false);
                     }}
-                    className="flex-1 py-3 text-[15px] font-medium text-white bg-blue-600 rounded-xl active:bg-blue-700 transition-colors"
+                    className="flex-1 py-3 text-[15px] font-medium text-white bg-gray-900 rounded-xl active:bg-black transition-colors"
                   >
                     确定移出
                   </button>
@@ -2186,7 +2248,7 @@ export default function App() {
                 </div>
                 <button 
                   onClick={() => setIsExcerptHistoryOpen(false)}
-                  className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
                 >
                   <X size={20} />
                 </button>
@@ -2232,7 +2294,7 @@ export default function App() {
 
               {/* AI Input Area */}
               <div className="p-4 bg-white border-t border-gray-100">
-                <div className="bg-gray-50 rounded-2xl p-3">
+                <div className="bg-white border border-gray-100 rounded-2xl p-3">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md text-[12px] text-gray-600 font-medium shadow-sm border border-gray-100">
                       <FileText size={12} />
