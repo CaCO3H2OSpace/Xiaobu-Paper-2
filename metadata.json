@@ -1,0 +1,8 @@
+{
+  "name": "小布笔记",
+  "description": "A note-taking app with notebooks, tags, and auto-collect functionality.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}
