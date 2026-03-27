@@ -5,7 +5,7 @@ import {
   MoreVertical, Plus, ChevronLeft, Inbox, Book, Settings, Trash2, X,
   Clock, CheckSquare, Copy, FolderPlus, FolderMinus, Share, Check,
   PlaySquare, ImageIcon, Link2, Mic, Pencil, Sparkles, RefreshCw, ArrowLeft,
-  Link as LinkIcon, Loader2, Bookmark, ChevronDown
+  Link as LinkIcon, Loader2, Bookmark, ChevronDown, Zap
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { Note, Notebook } from './types';
@@ -230,13 +230,22 @@ export default function App() {
   }, [quoteState.text, displayText, isMetadataVisible, quoteState.isGenerating]);
 
   const isGeneratingRef = useRef(false);
+  const quoteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryCountRef = useRef(0);
 
   const generateAIQuote = async () => {
     if (isGeneratingRef.current) return;
     isGeneratingRef.current = true;
     
+    if (quoteTimeoutRef.current) {
+      clearTimeout(quoteTimeoutRef.current);
+      quoteTimeoutRef.current = null;
+    }
+    
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      // Use process.env.API_KEY (paid key) if available, fallback to process.env.GEMINI_API_KEY
+      const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+      const ai = new GoogleGenAI({ apiKey: apiKey });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: [
@@ -293,30 +302,113 @@ export default function App() {
       
       setQuoteState(newQuote);
       setQuoteHistory(prev => [newQuote, ...prev].slice(0, 10));
-    } catch (error) {
-      console.error("Failed to generate AI quote:", error);
-      // Don't change the text on error, just stop generating
-      setQuoteState(prev => ({ ...prev, isGenerating: false }));
-    } finally {
-      isGeneratingRef.current = false;
-      // Wait 30 seconds before next generation
-      setTimeout(() => {
+      retryCountRef.current = 0; // Reset retry count on success
+      setIsQuotaExceeded(false);
+      
+      // Schedule next generation after a 30-second interval
+      quoteTimeoutRef.current = setTimeout(() => {
         generateAIQuote();
       }, 30000);
+    } catch (error: any) {
+      console.error("Failed to generate AI quote:", error);
+      setQuoteState(prev => ({ ...prev, isGenerating: false }));
+      
+      // Improved rate limit detection
+      let isRateLimit = false;
+      const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
+      
+      if (
+        error?.status === 429 || 
+        error?.error?.code === 429 || 
+        error?.message?.includes('429') || 
+        errorStr.includes('429') ||
+        errorStr.includes('RESOURCE_EXHAUSTED')
+      ) {
+        isRateLimit = true;
+      }
+      
+      if (isRateLimit) {
+        setIsQuotaExceeded(true);
+        retryCountRef.current += 1;
+        // Exponential backoff: 30s, 60s, 120s, etc. Max 10 minutes.
+        const backoffDelay = Math.min(30000 * Math.pow(2, retryCountRef.current - 1), 600000);
+        console.log(`Rate limited. Retrying in ${backoffDelay / 1000}s... (Retry #${retryCountRef.current})`);
+        
+        // If rate limited and no paid key, suggest connecting one
+        if (!isPaidKeyConnected) {
+          setQuoteState(prev => ({
+            ...prev,
+            subtitle: "免费 API 配额已耗尽，建议连接付费 API 以获得更稳定的体验"
+          }));
+        }
+
+        quoteTimeoutRef.current = setTimeout(() => {
+          generateAIQuote();
+        }, backoffDelay);
+      } else {
+        setIsQuotaExceeded(false);
+        // For other errors, still try again later but maybe after a standard delay
+        quoteTimeoutRef.current = setTimeout(() => {
+          generateAIQuote();
+        }, 60000);
+      }
+    } finally {
+      isGeneratingRef.current = false;
     }
   };
 
+  const hasTriggeredRef = useRef(false);
+
   useEffect(() => {
-    if (notes.length > 0) {
+    if (notes.length > 0 && !hasTriggeredRef.current) {
+      hasTriggeredRef.current = true;
+      // First generation: immediate
       generateAIQuote();
-    } else {
+    } else if (notes.length === 0) {
       setQuoteState({
         text: "来都来了，记个东西\n万一有用呢",
         subtitle: "记下第一条笔记，开启AI摘录",
         isGenerating: false
       });
+      hasTriggeredRef.current = false; // Reset if all notes deleted
     }
+    
+    return () => {
+      if (quoteTimeoutRef.current) {
+        clearTimeout(quoteTimeoutRef.current);
+      }
+    };
+  }, [notes.length > 0]);
+
+  const [isPaidKeyConnected, setIsPaidKeyConnected] = useState(false);
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
+
+  useEffect(() => {
+    const checkApiKey = async () => {
+      // @ts-ignore
+      if (window.aistudio && window.aistudio.hasSelectedApiKey) {
+        // @ts-ignore
+        const hasKey = await window.aistudio.hasSelectedApiKey();
+        setIsPaidKeyConnected(hasKey);
+      }
+    };
+    checkApiKey();
   }, []);
+
+  const handleConnectPaidAPI = async () => {
+    try {
+      // @ts-ignore
+      if (window.aistudio && window.aistudio.openSelectKey) {
+        // @ts-ignore
+        await window.aistudio.openSelectKey();
+        setIsPaidKeyConnected(true);
+        // After selecting, trigger a refresh
+        generateAIQuote();
+      }
+    } catch (err) {
+      console.error("Failed to open key selection:", err);
+    }
+  };
 
   const handleManualRefresh = () => {
     setQuoteState(prev => ({
@@ -551,7 +643,8 @@ export default function App() {
     setIsParsingLink(true);
     
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+      const ai = new GoogleGenAI({ apiKey: apiKey });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `Please read the content from this link: ${externalLinkInput} and summarize it in Chinese. Provide a title, tags, and the main body content.`,
@@ -945,6 +1038,13 @@ export default function App() {
                   </svg>
                 </div>
                 <div className="flex items-center gap-3">
+                  <button 
+                    onClick={handleConnectPaidAPI}
+                    className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors ${isPaidKeyConnected ? 'bg-yellow-50 border-yellow-200 text-yellow-600' : 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50'}`}
+                    title={isPaidKeyConnected ? "已连接付费 API" : "连接付费 API"}
+                  >
+                    <Zap size={20} className={`stroke-[2] ${isPaidKeyConnected ? 'fill-yellow-500' : ''}`} />
+                  </button>
                   <button className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors">
                     <Search size={20} className="stroke-[2]" />
                   </button>
@@ -957,6 +1057,37 @@ export default function App() {
 
             {/* Excerpt Area (Scrolls with page) */}
             <div className="px-5 pb-6 relative">
+              {isQuotaExceeded && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2 text-red-600">
+                    <Sparkles size={16} className="shrink-0" />
+                    <span className="text-[12px] font-medium">API 配额已耗尽</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {!isPaidKeyConnected && (
+                      <button 
+                        onClick={handleConnectPaidAPI}
+                        className="text-[11px] font-bold text-red-600 underline underline-offset-2"
+                      >
+                        连接付费 API
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => {
+                        retryCountRef.current = 0;
+                        handleManualRefresh();
+                      }}
+                      className="text-[11px] font-bold text-red-600 bg-red-100 px-2 py-1 rounded-md"
+                    >
+                      立即重试
+                    </button>
+                  </div>
+                </motion.div>
+              )}
               <div className="relative h-[160px] flex flex-col justify-center">
                 <div className="pr-4">
                   <h2 className={`font-bold text-gray-900 leading-snug mb-3 max-w-[90%] whitespace-pre-line ${getQuoteFontSize(quoteState.text)}`}>
