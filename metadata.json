@@ -1,5 +1,5 @@
 {
-  "name": "小布笔记",
+  "name": "StripNote",
   "description": "A note-taking app with notebooks, tags, and auto-collect functionality.",
   "requestFramePermissions": [
     "microphone",

@@ -1582,7 +1582,7 @@ export default function App() {
                           </div>
                           <div className="flex flex-col items-start text-left">
                             <span className="font-bold text-[15px] text-gray-900">添加附件</span>
-                            <span className="text-[11px] text-gray-500 mt-0.5">小布记忆 / 便签 / 音视频 / 文档 / 链接</span>
+                            <span className="text-[11px] text-gray-500 mt-0.5">StripNote / 便签 / 音视频 / 文档 / 链接</span>
                           </div>
                         </motion.button>
                         </motion.div>
@@ -1603,7 +1603,7 @@ export default function App() {
                           <div className="flex gap-6 overflow-x-auto pb-4 no-scrollbar">
                             {[
                               { icon: '💻', label: '远程电脑' },
-                              { icon: '🌈', label: '小布记忆' },
+                              { icon: '🌈', label: 'StripNote' },
                               { icon: '🖼️', label: '相册' },
                               { icon: '✍️', label: '便签' },
                               { icon: '📄', label: '文档' },
