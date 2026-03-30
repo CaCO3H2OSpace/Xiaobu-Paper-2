@@ -267,8 +267,8 @@ export default function App() {
     }
     
     try {
-      // Use process.env.API_KEY (paid key) if available, fallback to process.env.GEMINI_API_KEY
-      const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+      // Use user-provided key, then process.env.API_KEY (paid key), fallback to process.env.GEMINI_API_KEY
+      const apiKey = userApiKey || process.env.API_KEY || process.env.GEMINI_API_KEY;
       const ai = new GoogleGenAI({ apiKey: apiKey });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -339,6 +339,7 @@ export default function App() {
       // Improved rate limit and server error detection
       let isRateLimit = false;
       let isServerError = false;
+      let isUnavailable = false;
       const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
       
       if (
@@ -359,20 +360,32 @@ export default function App() {
       ) {
         isServerError = true;
       }
+
+      if (
+        error?.status === 503 ||
+        error?.error?.code === 503 ||
+        errorStr.includes('503') ||
+        errorStr.includes('UNAVAILABLE') ||
+        errorStr.includes('high demand')
+      ) {
+        isUnavailable = true;
+      }
       
-      if (isRateLimit) {
-        setIsQuotaExceeded(true);
+      if (isRateLimit || isUnavailable) {
+        setIsQuotaExceeded(isRateLimit);
         retryCountRef.current += 1;
         // Exponential backoff: 30s, 60s, 120s, etc. Max 10 minutes.
         const backoffDelay = Math.min(30000 * Math.pow(2, retryCountRef.current - 1), 600000);
-        console.log(`Rate limited. Retrying in ${backoffDelay / 1000}s... (Retry #${retryCountRef.current})`);
+        console.log(`${isRateLimit ? 'Rate limited' : 'Service unavailable'}. Retrying in ${backoffDelay / 1000}s... (Retry #${retryCountRef.current})`);
         
-        // If rate limited and no paid key, suggest connecting one
+        // If rate limited/unavailable and no paid key, suggest connecting one
         if (!isPaidKeyConnected) {
           setQuoteState(prev => ({
             ...prev,
             isGenerating: false,
-            subtitle: "免费 API 配额已耗尽，建议连接付费 API 以获得更稳定的体验"
+            subtitle: isRateLimit 
+              ? "免费 API 配额已耗尽，建议连接付费 API 以获得更稳定的体验"
+              : "AI 服务目前负载过高，建议连接付费 API 以获得更稳定的体验"
           }));
         } else {
           setQuoteState(prev => ({ ...prev, isGenerating: false }));
@@ -388,7 +401,11 @@ export default function App() {
           const fallback = FALLBACK_QUOTES[Math.floor(Math.random() * FALLBACK_QUOTES.length)];
           setQuoteState({ ...fallback, isGenerating: false });
         } else {
-          setQuoteState(prev => ({ ...prev, isGenerating: false }));
+          setQuoteState(prev => ({ 
+            ...prev, 
+            isGenerating: false,
+            subtitle: "摘录生成失败，请稍后重试"
+          }));
         }
 
         // Standard retry delay for non-rate-limit errors
@@ -426,9 +443,18 @@ export default function App() {
 
   const [isPaidKeyConnected, setIsPaidKeyConnected] = useState(false);
   const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [userApiKey, setUserApiKey] = useState<string>(() => localStorage.getItem('USER_GEMINI_API_KEY') || '');
 
   useEffect(() => {
     const checkApiKey = async () => {
+      // First check if user has manually entered a key
+      if (userApiKey) {
+        setIsPaidKeyConnected(true);
+        return;
+      }
+
+      // Then check for AI Studio platform key
       // @ts-ignore
       if (window.aistudio && window.aistudio.hasSelectedApiKey) {
         // @ts-ignore
@@ -437,21 +463,54 @@ export default function App() {
       }
     };
     checkApiKey();
-  }, []);
+  }, [userApiKey]);
 
-  const handleConnectPaidAPI = async () => {
-    try {
-      // @ts-ignore
-      if (window.aistudio && window.aistudio.openSelectKey) {
+  const handleConnectPaidAPI = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    console.log("handleConnectPaidAPI triggered");
+    
+    // @ts-ignore
+    const hasAiStudio = window.aistudio && typeof window.aistudio.openSelectKey === 'function';
+    
+    if (hasAiStudio) {
+      try {
         // @ts-ignore
         await window.aistudio.openSelectKey();
         setIsPaidKeyConnected(true);
         // After selecting, trigger a refresh
         generateAIQuote();
+      } catch (err) {
+        console.error("Failed to open key selection:", err);
+        // Fallback if the platform call fails
+        setIsApiKeyModalOpen(true);
       }
-    } catch (err) {
-      console.error("Failed to open key selection:", err);
+    } else {
+      // Fallback for standalone/Vercel: Open manual input modal
+      console.log("Opening manual API key modal");
+      setIsApiKeyModalOpen(true);
     }
+  };
+
+  const saveUserApiKey = (key: string) => {
+    const trimmedKey = key.trim();
+    if (trimmedKey) {
+      localStorage.setItem('USER_GEMINI_API_KEY', trimmedKey);
+      setUserApiKey(trimmedKey);
+      setIsPaidKeyConnected(true);
+      setIsApiKeyModalOpen(false);
+      // Trigger a refresh with the new key
+      setTimeout(() => generateAIQuote(), 500);
+    }
+  };
+
+  const removeUserApiKey = () => {
+    localStorage.removeItem('USER_GEMINI_API_KEY');
+    setUserApiKey('');
+    setIsPaidKeyConnected(false);
   };
 
   const handleManualRefresh = () => {
@@ -687,7 +746,7 @@ export default function App() {
     setIsParsingLink(true);
     
     try {
-      const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+      const apiKey = userApiKey || process.env.API_KEY || process.env.GEMINI_API_KEY;
       const ai = new GoogleGenAI({ apiKey: apiKey });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -736,12 +795,15 @@ export default function App() {
       const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
       const isRateLimit = errorStr.includes('429') || errorStr.includes('RESOURCE_EXHAUSTED');
       const isServerError = errorStr.includes('500') || errorStr.includes('Internal Server Error');
+      const isUnavailable = errorStr.includes('503') || errorStr.includes('UNAVAILABLE') || errorStr.includes('high demand');
 
       let fallbackTitle = '外部链接解析内容';
       let fallbackContent = '这是从外部链接解析出的正文内容总结。包含了文章的核心观点和主要信息。';
       
       if (isRateLimit) {
         fallbackContent = '由于 API 配额限制，暂时无法自动解析该链接。已为您创建占位笔记，您可以稍后手动编辑或重试。';
+      } else if (isUnavailable) {
+        fallbackContent = 'AI 服务目前负载过高，暂时无法自动解析该链接。已为您创建占位笔记。';
       } else if (isServerError) {
         fallbackContent = '服务器暂时繁忙，无法解析该链接。已为您创建占位笔记。';
       }
@@ -1097,7 +1159,7 @@ export default function App() {
                 </div>
                 <div className="flex items-center gap-3">
                   <button 
-                    onClick={handleConnectPaidAPI}
+                    onClick={(e) => handleConnectPaidAPI(e)}
                     className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors ${isPaidKeyConnected ? 'bg-yellow-50 border-yellow-200 text-yellow-600' : 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50'}`}
                     title={isPaidKeyConnected ? "已连接付费 API" : "连接付费 API"}
                   >
@@ -1128,7 +1190,7 @@ export default function App() {
                   <div className="flex items-center gap-2">
                     {!isPaidKeyConnected && (
                       <button 
-                        onClick={handleConnectPaidAPI}
+                        onClick={(e) => handleConnectPaidAPI(e)}
                         className="text-[11px] font-bold text-red-600 underline underline-offset-2"
                       >
                         连接付费 API
@@ -1490,7 +1552,8 @@ export default function App() {
   };
 
   return (
-    <div className="fixed inset-0 w-full bg-white flex items-center justify-center p-0 md:p-4 font-sans overflow-hidden">
+    <>
+      <div className="fixed inset-0 w-full bg-white flex items-center justify-center p-0 md:p-4 font-sans overflow-hidden">
       {/* Mobile Simulator Container */}
       <div className="w-full h-full md:h-[844px] md:w-[390px] bg-white md:rounded-[40px] md:shadow-2xl relative overflow-hidden border-0 md:border-[8px] border-gray-900 flex flex-col">
         
@@ -2513,6 +2576,65 @@ export default function App() {
         </AnimatePresence>
       </div>
     </div>
+    
+    {/* API Key Modal */}
+    <AnimatePresence>
+      {isApiKeyModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-gray-900">连接付费 API</h3>
+              <button onClick={() => setIsApiKeyModalOpen(false)} className="p-2 text-gray-400 hover:bg-gray-100 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+              请输入你的 Gemini API Key。该 Key 将仅存储在本地浏览器中，用于提供更稳定的 AI 服务。
+            </p>
+            <div className="space-y-4">
+              <div className="relative">
+                <input
+                  id="api-key-input"
+                  type="password"
+                  placeholder="粘贴你的 API Key"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      saveUserApiKey((e.target as HTMLInputElement).value);
+                    }
+                  }}
+                />
+              </div>
+              <button
+                onClick={() => {
+                  const input = document.getElementById('api-key-input') as HTMLInputElement;
+                  saveUserApiKey(input.value);
+                }}
+                className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-colors shadow-lg shadow-gray-900/20"
+              >
+                确认连接
+              </button>
+              <div className="text-center">
+                <a 
+                  href="https://ai.google.dev/gemini-api/docs/billing" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-[12px] text-gray-400 underline underline-offset-2"
+                >
+                  如何获取 API Key？
+                </a>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+    </>
   );
 }
 
