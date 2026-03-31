@@ -5,7 +5,8 @@ import {
   MoreVertical, Plus, ChevronLeft, Inbox, Book, Settings, Trash2, X,
   Clock, CheckSquare, Copy, FolderPlus, FolderMinus, Share, Check,
   PlaySquare, ImageIcon, Link2, Mic, Pencil, Sparkles, RefreshCw, ArrowLeft,
-  Link as LinkIcon, Loader2, Bookmark, ChevronDown, Globe, Paperclip
+  Link as LinkIcon, Loader2, Bookmark, ChevronDown, Globe, Paperclip,
+  ChevronsRight, ChevronsLeft, Download, ExternalLink
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { Note, Notebook } from './types';
@@ -362,6 +363,10 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [quoteState.text, quoteState.source, quoteState.date, displayText, displaySource, displayDate]);
 
+  const isTypingFinished = displayText === quoteState.text && 
+    displaySource === (quoteState.source || "档案馆正在准备中...") && 
+    displayDate === (quoteState.date ? `记录于 ${quoteState.date}` : "请持续记录吧");
+
   const isGeneratingRef = useRef(false);
   const quoteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
@@ -560,11 +565,13 @@ export default function App() {
   
   // Navigation State
   const [activeTab, setActiveTab] = useState<'notes' | 'notebooks'>('notes');
-  const [currentScreen, setCurrentScreen] = useState<'home' | 'editor' | 'notebook_detail' | 'chat'>('home');
+  const [currentScreen, setCurrentScreen] = useState<'home' | 'editor' | 'notebook_detail' | 'chat' | 'archive'>('home');
   const [chatMode, setChatMode] = useState<'default' | 'excerpt'>('default');
   const [chatExcerpt, setChatExcerpt] = useState<any>(null);
   const [chatInput, setChatInput] = useState('');
   const [isReferenceVisible, setIsReferenceVisible] = useState(true);
+  const [archiveIndex, setArchiveIndex] = useState(0);
+  const [isCopied, setIsCopied] = useState(false);
   
   // Selection State
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
@@ -1150,6 +1157,160 @@ export default function App() {
   };
 
   // Renderers
+  useEffect(() => {
+    setIsCopied(false);
+  }, [archiveIndex]);
+
+  const renderArchive = () => {
+    const currentExcerpt = PRE_GENERATED_EXCERPTS[archiveIndex];
+    const totalExcerpts = PRE_GENERATED_EXCERPTS.length;
+
+    const handleCopy = () => {
+      navigator.clipboard.writeText(currentExcerpt.text);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    };
+
+    const handleGoToNote = () => {
+      const note = notes.find(n => n.title === currentExcerpt.source);
+      if (note) {
+        setActiveNoteId(note.id);
+        setCurrentScreen('editor');
+      }
+    };
+
+    return (
+      <div className="flex-1 flex flex-col relative overflow-hidden bg-[#1a1a1a]">
+        {/* Immersive Background */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=2070&auto=format&fit=crop" 
+            className="w-full h-full object-cover opacity-40 mix-blend-overlay"
+            alt="Background"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
+        </div>
+
+        {/* Header */}
+        <div className="relative z-10 px-6 pt-12 pb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-[28px] font-bold text-white tracking-tight">摘录档案馆</h1>
+            <button 
+              onClick={() => setCurrentScreen('home')}
+              className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:scale-90 transition-transform"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          <p className="text-[14px] text-white/50 font-medium tracking-wide">今日，与这些记录重逢</p>
+        </div>
+
+        {/* Center Content */}
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-10 text-center">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={archiveIndex}
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 1.1, y: -20 }}
+              transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+              className="flex flex-col items-center"
+            >
+              <div className="relative mb-12">
+                <svg className="absolute -top-10 -left-10 text-white/10 w-20 h-20" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                </svg>
+                <h2 className="text-[22px] font-bold text-white leading-[1.6] tracking-tight drop-shadow-lg">
+                  {currentExcerpt.text}
+                </h2>
+              </div>
+
+              <button 
+                onClick={handleGoToNote}
+                className="group flex flex-col items-center gap-2 p-6 rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all active:scale-95"
+              >
+                <div className="flex items-center gap-2 text-white/60 group-hover:text-white transition-colors">
+                  <span className="text-[13px] font-medium tracking-wide">—— 《{currentExcerpt.source}》</span>
+                  <ExternalLink size={14} />
+                </div>
+                <span className="text-[11px] text-white/30">记于 {currentExcerpt.date}</span>
+              </button>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Actions */}
+        <div className="relative z-10 px-6 pb-12 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={handleCopy}
+              className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition-all active:scale-95"
+              title={isCopied ? '已复制' : '复制'}
+            >
+              {isCopied ? <Check size={20} className="text-emerald-400" /> : <Copy size={20} />}
+            </button>
+            
+            <button className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition-all active:scale-95" title="存图">
+              <Download size={20} />
+            </button>
+          </div>
+
+          <button 
+            onClick={() => {
+              setChatMode('excerpt');
+              setChatExcerpt(currentExcerpt);
+              setIsReferenceVisible(true);
+              setCurrentScreen('chat');
+            }}
+            className="flex items-center gap-2 px-6 py-3 rounded-full bg-white text-gray-900 shadow-xl hover:scale-105 transition-all active:scale-95"
+          >
+            <div className="w-5 h-5 flex items-center justify-center shrink-0">
+              <img 
+                src="https://cdn.phototourl.com/free/2026-03-31-e4ab4c41-3964-4aab-9823-89ce63e016c4.png" 
+                className="w-full h-full object-contain" 
+                alt="AI"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <span className="text-[14px] font-bold">回顾</span>
+          </button>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="relative z-10 px-6 pb-10 flex items-center justify-between">
+          <button 
+            onClick={() => setArchiveIndex(prev => (prev > 0 ? prev - 1 : totalExcerpts - 1))}
+            className="w-12 h-12 rounded-full flex items-center justify-center text-white/40 hover:text-white transition-colors active:scale-90"
+          >
+            <ChevronsLeft size={28} />
+          </button>
+          
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-[16px] font-bold text-white tracking-widest">
+              {archiveIndex + 1} <span className="text-white/30 font-medium mx-1">/</span> {totalExcerpts}
+            </span>
+            <div className="flex gap-1">
+              {Array.from({ length: totalExcerpts }).map((_, i) => (
+                <div 
+                  key={i} 
+                  className={`h-1 rounded-full transition-all duration-300 ${i === archiveIndex ? 'w-4 bg-white' : 'w-1 bg-white/20'}`}
+                />
+              ))}
+            </div>
+          </div>
+
+          <button 
+            onClick={() => setArchiveIndex(prev => (prev < totalExcerpts - 1 ? prev + 1 : 0))}
+            className="w-12 h-12 rounded-full flex items-center justify-center text-white/40 hover:text-white transition-colors active:scale-90"
+          >
+            <ChevronsRight size={28} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const renderChat = () => {
     const isExcerpt = chatMode === 'excerpt' && chatExcerpt;
 
@@ -1166,7 +1327,7 @@ export default function App() {
         </div>
 
         {/* Chat Content */}
-        <div className="flex-1 overflow-y-auto px-6 pb-40">
+        <div className="flex-1 overflow-y-auto px-6 pb-40 flex flex-col justify-end">
           <AnimatePresence mode="wait">
             {!isExcerpt ? (
               <motion.div 
@@ -1395,9 +1556,23 @@ export default function App() {
               <div className="relative flex flex-row items-end gap-4 py-2 min-h-[140px]">
                 {/* Left Column: Text & Metadata */}
                 <div className="flex-1 self-stretch flex flex-col">
-                  <div className="flex-1 flex flex-col justify-center">
+                  <div 
+                    className="flex-1 flex flex-col justify-center cursor-pointer active:opacity-70 transition-opacity"
+                    onClick={() => {
+                      if (hasExitedDefault && quoteState.source) {
+                        const index = PRE_GENERATED_EXCERPTS.findIndex(e => e.text === quoteState.text);
+                        setArchiveIndex(index >= 0 ? index : 0);
+                        setCurrentScreen('archive');
+                      }
+                    }}
+                  >
                     <h2 className={`font-bold text-gray-900 leading-[1.4] whitespace-pre-line ${getQuoteFontSize(quoteState.text)}`}>
                       {renderHighlightedText(displayText, displayMetadata.source ? displayMetadata.highlightedWords : [])}
+                      {hasExitedDefault && displaySource && displaySource !== "档案馆正在准备中..." && (
+                        <span className="inline-flex ml-1 text-gray-300">
+                          <ChevronsRight size={16} />
+                        </span>
+                      )}
                     </h2>
                   </div>
                   
@@ -1406,7 +1581,7 @@ export default function App() {
                     <div className="pb-1">
                       <p className="text-[11px] text-gray-400 leading-relaxed line-clamp-2 opacity-80">
                         {hasExitedDefault && displaySource && displaySource !== "档案馆正在准备中..."
-                          ? `《${displaySource}》` 
+                          ? `—— 《${displaySource}》` 
                           : displaySource}
                       </p>
                       <p className="text-[11px] text-gray-300">
@@ -1450,7 +1625,7 @@ export default function App() {
                       }
                       setCurrentScreen('chat');
                     }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 backdrop-blur-xl border border-white/30 shadow-[0_4px_12px_rgba(0,0,0,0.03)] active:scale-95 transition-all group"
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 backdrop-blur-xl border border-white/30 shadow-[0_4px_12px_rgba(0,0,0,0.03)] active:scale-95 transition-all group w-[96px] justify-center"
                   >
                     <div className="w-5 h-5 flex items-center justify-center shrink-0">
                       <img 
@@ -1460,7 +1635,20 @@ export default function App() {
                         referrerPolicy="no-referrer"
                       />
                     </div>
-                    <span className="text-[12px] text-gray-500 font-bold tracking-tight">聊一聊</span>
+                    <div className="relative h-4 w-[42px] overflow-hidden flex items-center justify-center">
+                      <AnimatePresence mode="wait">
+                        <motion.span 
+                          key={hasExitedDefault && isTypingFinished ? 'review' : 'chat'}
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -12 }}
+                          transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                          className="text-[12px] text-gray-500 font-bold tracking-tight whitespace-nowrap absolute"
+                        >
+                          {hasExitedDefault && isTypingFinished ? '回顾' : '聊一聊'}
+                        </motion.span>
+                      </AnimatePresence>
+                    </div>
                   </motion.button>
                 </div>
               </div>
@@ -1778,9 +1966,10 @@ export default function App() {
         {currentScreen === 'notebook_detail' && renderNotebookDetail()}
         {currentScreen === 'editor' && renderEditor()}
         {currentScreen === 'chat' && renderChat()}
+        {currentScreen === 'archive' && renderArchive()}
 
         {/* FAB and Create Menu */}
-        {currentScreen !== 'editor' && currentScreen !== 'chat' && !isMultiSelectMode && (
+        {currentScreen !== 'editor' && currentScreen !== 'chat' && currentScreen !== 'archive' && !isMultiSelectMode && (
           <>
             <AnimatePresence>
               {isCreateMenuOpen && (
