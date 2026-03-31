@@ -1292,7 +1292,7 @@ export default function App() {
             </div>
 
             {/* Tabs (Sticky) */}
-            <div className="sticky top-[104px] z-20 bg-white flex items-center justify-between px-5 py-2 border-b border-gray-100">
+            <div className="sticky top-[77px] z-20 bg-white flex items-center justify-between px-5 py-2 border-b border-gray-100">
               <div className="flex gap-5 items-center">
                 <button 
                   onClick={() => { setActiveTab('notes'); setActiveNotebookId(null); }}
