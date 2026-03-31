@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Plus, Sparkles, RefreshCw, Inbox } from 'lucide-react';
+import { X, Plus, Sparkles, RefreshCw } from 'lucide-react';
 import { Note, Notebook } from '../types';
 
 interface TagEditorPanelProps {

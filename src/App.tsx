@@ -5,7 +5,7 @@ import {
   MoreVertical, Plus, ChevronLeft, Inbox, Book, Settings, Trash2, X,
   Clock, CheckSquare, Copy, FolderPlus, FolderMinus, Share, Check,
   PlaySquare, ImageIcon, Link2, Mic, Pencil, Sparkles, RefreshCw, ArrowLeft,
-  Link as LinkIcon, Loader2, Bookmark, ChevronDown, Zap
+  Link as LinkIcon, Loader2, Bookmark, ChevronDown
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { Note, Notebook } from './types';
@@ -20,21 +20,101 @@ const FALLBACK_QUOTES = [
     source: "笔记心得",
     date: new Date().toLocaleDateString().replace(/\//g, '.'),
     highlightedWords: ["烂笔头", "思考"],
-    highlightColor: "text-gray-900"
+    highlightColor: "text-blue-600"
   },
   {
     text: "温故而知新，可以为师矣。定期回顾你的笔记。",
     source: "论语",
     date: new Date().toLocaleDateString().replace(/\//g, '.'),
     highlightedWords: ["温故而知新"],
-    highlightColor: "text-gray-900"
+    highlightColor: "text-emerald-600"
   },
   {
     text: "灵感转瞬即逝，唯有记录永恒。",
     source: "创作指南",
     date: new Date().toLocaleDateString().replace(/\//g, '.'),
     highlightedWords: ["灵感", "永恒"],
-    highlightColor: "text-gray-900"
+    highlightColor: "text-purple-600"
+  }
+];
+
+const PRE_GENERATED_EXCERPTS = [
+  {
+    text: "我们要找到自己的优势，女性用户 👩‍💼 多，画像 🎨 很重要且会持续调整。",
+    source: "打苹果软肋：设计风格与人群定位",
+    date: "2026.03.25",
+    highlightedWords: ["优势", "画像"],
+    highlightColor: "text-rose-600"
+  },
+  {
+    text: "如何做到 软硬结合 🤝 的体验，使得一加一大于2，是很好的切入点。",
+    source: "FInd 的人群系统思考：高端全景与软硬结合",
+    date: "2026.03.25",
+    highlightedWords: ["软硬结合", "切入点"],
+    highlightColor: "text-blue-600"
+  },
+  {
+    text: "口袋生产力 📱 是折叠上软件的长期演进赛道。",
+    source: "折叠屏口袋生产力：长期演进赛道共识",
+    date: "2026.03.25",
+    highlightedWords: ["口袋生产力", "演进赛道"],
+    highlightColor: "text-emerald-600"
+  },
+  {
+    text: "表达功能并 升华功能 ✨，把拍照感觉显得专业和大气。",
+    source: "直板机5大赛道梳理：影像、屏幕、系统、性能、外观",
+    date: "2026.03.25",
+    highlightedWords: ["升华功能", "专业"],
+    highlightColor: "text-purple-600"
+  },
+  {
+    text: "建立折叠 DXO 📏 的衡量标准，并不断斟酌量化指标。",
+    source: "折叠屏体验衡量标准与DXO",
+    date: "2026.03.25",
+    highlightedWords: ["DXO", "量化指标"],
+    highlightColor: "text-orange-600"
+  },
+  {
+    text: "软件功能 💻 需要放大硬件的价值，硬件是用户买单的核心点。",
+    source: "白天鹅重点突破与悬停模式思考",
+    date: "2026.03.26",
+    highlightedWords: ["软件功能", "硬件价值"],
+    highlightColor: "text-indigo-600"
+  },
+  {
+    text: "科技与 艺术 🎨 结合，就有人性化和温暖的东西。",
+    source: "折叠first打透：引领者与商业价值",
+    date: "2026.03.26",
+    highlightedWords: ["艺术", "人性化"],
+    highlightColor: "text-pink-600"
+  },
+  {
+    text: "高端女性 👗 的抓取弱的问题，女性用户多了就有规模效应。",
+    source: "寻找感性人群与高端女性用户抓取",
+    date: "2026.03.26",
+    highlightedWords: ["高端女性", "规模效应"],
+    highlightColor: "text-violet-600"
+  },
+  {
+    text: "大的方向讲 智慧生活 🏠，互联互通原来是个主线。",
+    source: "智慧生活与泛在服务架构思考",
+    date: "2026.03.26",
+    highlightedWords: ["智慧生活", "互联互通"],
+    highlightColor: "text-cyan-600"
+  },
+  {
+    text: "在苹果没有 KPI 🚫，只看 results-innovation。",
+    source: "苹果文化与OPPO文化的对比与反思",
+    date: "2026.03.26",
+    highlightedWords: ["KPI", "innovation"],
+    highlightColor: "text-amber-600"
+  },
+  {
+    text: "手环 ⌚️ 追求简单准确有效，也许能替代特定人群的喜好。",
+    source: "OPPO手环使用初体验与产品思考",
+    date: "2026.03.26",
+    highlightedWords: ["手环", "简单准确"],
+    highlightColor: "text-teal-600"
   }
 ];
 
@@ -194,10 +274,9 @@ export default function App() {
     highlightColor?: string;
     isGenerating: boolean;
   }>({
-    text: "来都来了，记个东西\n万一有用呢",
-    subtitle: "正在尝试摘录你曾经的笔记\n...",
+    text: "习惯记录 📝\n期待每一次自我重逢",
     highlightColor: "text-gray-900",
-    isGenerating: true
+    isGenerating: false
   });
   const [quoteHistory, setQuoteHistory] = useState<any[]>([]);
   const [isExcerptHistoryOpen, setIsExcerptHistoryOpen] = useState(false);
@@ -205,6 +284,7 @@ export default function App() {
   // Typing Animation State
   const [displayText, setDisplayText] = useState(quoteState.text);
   const [isMetadataVisible, setIsMetadataVisible] = useState(true);
+  const [hasExitedDefault, setHasExitedDefault] = useState(false);
   const [displayMetadata, setDisplayMetadata] = useState({
     source: quoteState.source,
     date: quoteState.date,
@@ -217,8 +297,20 @@ export default function App() {
     if (quoteState.text === displayText) {
       if (!isMetadataVisible && !quoteState.isGenerating) {
         // Show metadata after typing is complete
-        const timer = setTimeout(() => setIsMetadataVisible(true), 200);
-        return () => clearTimeout(timer);
+        if (!hasExitedDefault && quoteState.source) {
+          // Sequence for first transition:
+          // 1. Wait for a moment after typing finishes
+          // 2. Start shrinking the bar AND showing metadata simultaneously
+          const sequenceTimer = setTimeout(() => {
+            setHasExitedDefault(true);
+            setIsMetadataVisible(true);
+          }, 500);
+          return () => clearTimeout(sequenceTimer);
+        } else {
+          // Subsequent excerpts or if already exited default
+          const timer = setTimeout(() => setIsMetadataVisible(true), 200);
+          return () => clearTimeout(timer);
+        }
       }
       return;
     }
@@ -267,53 +359,12 @@ export default function App() {
     }
     
     try {
-      // Use user-provided key, then process.env.API_KEY (paid key), fallback to process.env.GEMINI_API_KEY
-      const apiKey = userApiKey || process.env.API_KEY || process.env.GEMINI_API_KEY;
-      const ai = new GoogleGenAI({ apiKey: apiKey });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: `请从以下3篇随机笔记中摘录一句话：\n\n${
-              [...notes]
-                .sort(() => 0.5 - Math.random())
-                .slice(0, 3)
-                .map(n => `标题: ${n.title}\n内容: ${n.content}\n更新时间: ${new Date(n.updatedAt).toLocaleDateString()}`)
-                .join('\n\n---\n\n')
-            }` }]
-          }
-        ],
-        config: {
-          systemInstruction: `你是一个笔记摘录专家。你的任务是从用户的笔记中摘录出最有启发意义的一句话。
-启发意义的定义：
-1. #发光：用户的观点、金句、思维提升、情绪、能量等。
-2. #世界之光：世界最佳实践、诗词、座右铭、名人名句、思维模型、逻辑工具。
-3. #身边的光：人际关系、关键人物画像、重要表达观点、重点回应、对你帮助最大的人事物。
-
-要求：
-- 摘录的话必须来自提供的笔记内容。
-- 这句话不能超过三行（约40-50个汉字以内）。
-- 适当插入最多 1 个 emoji，且该 emoji 应紧跟在相关的词汇后面，而不是统一放在句末。
-- 识别出句中最重要的 2-3 个词语进行重点标注。
-- 摘录的内容统一使用同一种高亮颜色，请根据摘录内容的风格从以下颜色中选择一个最合适的：text-gray-900, text-black, text-gray-800, text-gray-700. 只返回颜色类名。
-- 输出格式为JSON。`,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              text: { type: Type.STRING, description: "摘录的句子" },
-              highlightedWords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "需要重点标注的词语" },
-              highlightColor: { type: Type.STRING, description: "高亮颜色类名" },
-              source: { type: Type.STRING, description: "笔记标题" },
-              date: { type: Type.STRING, description: "更新日期，格式如 2026.03.27" }
-            },
-            required: ["text", "highlightedWords", "highlightColor", "source", "date"]
-          }
-        }
-      });
-
-      const result = JSON.parse(response.text || "{}");
+      // 从预生成的摘录中随机选取，避免重复调用 API
+      const availableExcerpts = [...PRE_GENERATED_EXCERPTS];
+      // 尽量不选取与当前相同的摘录
+      const filtered = availableExcerpts.filter(e => e.text !== quoteState.text);
+      const sourceList = filtered.length > 0 ? filtered : availableExcerpts;
+      const result = sourceList[Math.floor(Math.random() * sourceList.length)];
       
       const newQuote = {
         text: result.text,
@@ -326,93 +377,23 @@ export default function App() {
       
       setQuoteState(newQuote);
       setQuoteHistory(prev => [newQuote, ...prev].slice(0, 10));
-      retryCountRef.current = 0; // Reset retry count on success
+      retryCountRef.current = 0;
       setIsQuotaExceeded(false);
+      setIsServiceUnavailable(false);
       
-      // Schedule next generation after a 30-second interval
+      // 每 45 秒轮播一次
       quoteTimeoutRef.current = setTimeout(() => {
         generateAIQuote();
-      }, 30000);
-    } catch (error: any) {
-      console.error("Failed to generate AI quote:", error);
+      }, 45000);
+    } catch (error) {
+      console.error("Failed to pick pre-generated quote:", error);
+      // 发生错误时使用备用摘录
+      const fallback = FALLBACK_QUOTES[Math.floor(Math.random() * FALLBACK_QUOTES.length)];
+      setQuoteState({ ...fallback, isGenerating: false });
       
-      // Improved rate limit and server error detection
-      let isRateLimit = false;
-      let isServerError = false;
-      let isUnavailable = false;
-      const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
-      
-      if (
-        error?.status === 429 || 
-        error?.error?.code === 429 || 
-        error?.message?.includes('429') || 
-        errorStr.includes('429') ||
-        errorStr.includes('RESOURCE_EXHAUSTED')
-      ) {
-        isRateLimit = true;
-      }
-
-      if (
-        error?.status === 500 ||
-        error?.error?.code === 500 ||
-        errorStr.includes('500') ||
-        errorStr.includes('Internal Server Error')
-      ) {
-        isServerError = true;
-      }
-
-      if (
-        error?.status === 503 ||
-        error?.error?.code === 503 ||
-        errorStr.includes('503') ||
-        errorStr.includes('UNAVAILABLE') ||
-        errorStr.includes('high demand')
-      ) {
-        isUnavailable = true;
-      }
-      
-      if (isRateLimit || isUnavailable) {
-        setIsQuotaExceeded(isRateLimit);
-        retryCountRef.current += 1;
-        // Exponential backoff: 30s, 60s, 120s, etc. Max 10 minutes.
-        const backoffDelay = Math.min(30000 * Math.pow(2, retryCountRef.current - 1), 600000);
-        console.log(`${isRateLimit ? 'Rate limited' : 'Service unavailable'}. Retrying in ${backoffDelay / 1000}s... (Retry #${retryCountRef.current})`);
-        
-        // If rate limited/unavailable and no paid key, suggest connecting one
-        if (!isPaidKeyConnected) {
-          setQuoteState(prev => ({
-            ...prev,
-            isGenerating: false,
-            subtitle: isRateLimit 
-              ? "免费 API 配额已耗尽，建议连接付费 API 以获得更稳定的体验"
-              : "AI 服务目前负载过高，建议连接付费 API 以获得更稳定的体验"
-          }));
-        } else {
-          setQuoteState(prev => ({ ...prev, isGenerating: false }));
-        }
-
-        quoteTimeoutRef.current = setTimeout(() => {
-          generateAIQuote();
-        }, backoffDelay);
-      } else {
-        setIsQuotaExceeded(false);
-        // For other errors (including 500), use a fallback quote if we've tried a few times or it's a server error
-        if (isServerError || retryCountRef.current > 0) {
-          const fallback = FALLBACK_QUOTES[Math.floor(Math.random() * FALLBACK_QUOTES.length)];
-          setQuoteState({ ...fallback, isGenerating: false });
-        } else {
-          setQuoteState(prev => ({ 
-            ...prev, 
-            isGenerating: false,
-            subtitle: "摘录生成失败，请稍后重试"
-          }));
-        }
-
-        // Standard retry delay for non-rate-limit errors
-        quoteTimeoutRef.current = setTimeout(() => {
-          generateAIQuote();
-        }, 60000);
-      }
+      quoteTimeoutRef.current = setTimeout(() => {
+        generateAIQuote();
+      }, 60000);
     } finally {
       isGeneratingRef.current = false;
     }
@@ -423,12 +404,13 @@ export default function App() {
   useEffect(() => {
     if (notes.length > 0 && !hasTriggeredRef.current) {
       hasTriggeredRef.current = true;
-      // First generation: immediate
-      generateAIQuote();
+      // 首次启动，45秒后开始轮播
+      quoteTimeoutRef.current = setTimeout(() => {
+        generateAIQuote();
+      }, 45000);
     } else if (notes.length === 0) {
       setQuoteState({
-        text: "来都来了，记个东西\n万一有用呢",
-        subtitle: "记下第一条笔记，开启AI摘录",
+        text: "习惯记录\n期待每一次自我重逢",
         isGenerating: false
       });
       hasTriggeredRef.current = false; // Reset if all notes deleted
@@ -443,6 +425,7 @@ export default function App() {
 
   const [isPaidKeyConnected, setIsPaidKeyConnected] = useState(false);
   const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
+  const [isServiceUnavailable, setIsServiceUnavailable] = useState(false);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
   const [userApiKey, setUserApiKey] = useState<string>(() => localStorage.getItem('USER_GEMINI_API_KEY') || '');
 
@@ -514,6 +497,8 @@ export default function App() {
   };
 
   const handleManualRefresh = () => {
+    setIsQuotaExceeded(false);
+    setIsServiceUnavailable(false);
     setQuoteState(prev => ({
       ...prev,
       isGenerating: true,
@@ -523,9 +508,9 @@ export default function App() {
   };
 
   const getQuoteFontSize = (text: string) => {
-    if (text.length < 20) return 'text-[24px]';
-    if (text.length < 35) return 'text-[20px]';
-    return 'text-[18px]';
+    if (text.length < 15) return 'text-[20px]';
+    if (text.length < 30) return 'text-[18px]';
+    return 'text-[16px]';
   };
 
   const renderHighlightedText = (text: string, highlightedWords: string[] = []) => {
@@ -748,24 +733,43 @@ export default function App() {
     try {
       const apiKey = userApiKey || process.env.API_KEY || process.env.GEMINI_API_KEY;
       const ai = new GoogleGenAI({ apiKey: apiKey });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Please read the content from this link: ${externalLinkInput} and summarize it in Chinese. Provide a title, tags, and the main body content.`,
-        config: {
-          tools: [{ urlContext: {} }],
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING, description: "The title of the note" },
-              tags: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Relevant tags for the note" },
-              content: { type: Type.STRING, description: "The summarized content of the link" },
-              source: { type: Type.STRING, description: "The name of the source platform (e.g., 网页, 小红书, 抖音)" }
-            },
-            required: ["title", "tags", "content", "source"]
-          }
+      
+      // Try models in order
+      const modelsToTry = ["gemini-3.1-flash-lite-preview", "gemini-3-flash-preview"];
+      let response = null;
+      let lastError = null;
+      
+      for (const modelName of modelsToTry) {
+        try {
+          response = await ai.models.generateContent({
+            model: modelName,
+            contents: `Please read the content from this link: ${externalLinkInput} and summarize it in Chinese. Provide a title, tags, and the main body content.`,
+            config: {
+              tools: [{ urlContext: {} }],
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING, description: "The title of the note" },
+                  tags: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Relevant tags for the note" },
+                  content: { type: Type.STRING, description: "The summarized content of the link" },
+                  source: { type: Type.STRING, description: "The name of the source platform (e.g., 网页, 小红书, 抖音)" }
+                },
+                required: ["title", "tags", "content", "source"]
+              }
+            }
+          });
+          if (response) break;
+        } catch (err) {
+          lastError = err;
+          console.warn(`Model ${modelName} failed for link parsing, trying next...`, err);
+          continue;
         }
-      });
+      }
+
+      if (!response) {
+        throw lastError || new Error("All models failed to parse link");
+      }
       
       const result = JSON.parse(response.text || "{}");
       
@@ -1150,7 +1154,7 @@ export default function App() {
         ) : (
           <>
             {/* Top Bar (Sticky) */}
-            <div className="sticky top-0 z-30 bg-white px-5 pt-12 pb-4 border-b border-gray-100">
+            <div className="sticky top-0 z-30 bg-white px-5 pt-8 pb-4 border-b border-gray-100">
               <div className="flex items-center justify-between">
                 <div className="text-gray-900">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
@@ -1159,11 +1163,16 @@ export default function App() {
                 </div>
                 <div className="flex items-center gap-3">
                   <button 
-                    onClick={(e) => handleConnectPaidAPI(e)}
-                    className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors ${isPaidKeyConnected ? 'bg-yellow-50 border-yellow-200 text-yellow-600' : 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50'}`}
-                    title={isPaidKeyConnected ? "已连接付费 API" : "连接付费 API"}
+                    onClick={() => handleManualRefresh()}
+                    className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors active:scale-95"
+                    title="刷新摘录"
                   >
-                    <Zap size={20} className={`stroke-[2] ${isPaidKeyConnected ? 'fill-yellow-500' : ''}`} />
+                    <motion.div
+                      animate={quoteState.isGenerating ? { rotate: 360 } : { rotate: 0 }}
+                      transition={{ duration: 1, repeat: quoteState.isGenerating ? Infinity : 0, ease: "linear" }}
+                    >
+                      <RefreshCw size={20} className="stroke-[2]" />
+                    </motion.div>
                   </button>
                   <button className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors">
                     <Search size={20} className="stroke-[2]" />
@@ -1177,7 +1186,7 @@ export default function App() {
 
             {/* Excerpt Area (Scrolls with page) */}
             <div className="px-5 pb-6 relative">
-              {isQuotaExceeded && (
+              {(isQuotaExceeded || isServiceUnavailable) && (
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1185,17 +1194,11 @@ export default function App() {
                 >
                   <div className="flex items-center gap-2 text-red-600">
                     <Sparkles size={16} className="shrink-0" />
-                    <span className="text-[12px] font-medium">API 配额已耗尽</span>
+                    <span className="text-[12px] font-medium">
+                      {isQuotaExceeded ? "API 配额已耗尽" : "AI 服务目前负载过高"}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {!isPaidKeyConnected && (
-                      <button 
-                        onClick={(e) => handleConnectPaidAPI(e)}
-                        className="text-[11px] font-bold text-red-600 underline underline-offset-2"
-                      >
-                        连接付费 API
-                      </button>
-                    )}
                     <button 
                       onClick={() => {
                         retryCountRef.current = 0;
@@ -1208,44 +1211,114 @@ export default function App() {
                   </div>
                 </motion.div>
               )}
-              <div className="relative h-[160px] flex flex-col justify-center">
-                <div className="pr-4">
-                  <h2 className={`font-bold text-gray-900 leading-snug mb-3 max-w-[90%] whitespace-pre-line ${getQuoteFontSize(quoteState.text)}`}>
-                    {renderHighlightedText(displayText, displayMetadata.highlightedWords)}
-                  </h2>
-                  
+              <div className="relative min-h-[150px] flex flex-col justify-between py-4">
+                {/* Top Row: Text & Mascot */}
+                <div className="flex items-end min-h-[100px] relative">
+                  <div className="flex-1 pb-2">
+                    {/* Red Area: Text Container */}
+                    <h2 className={`font-bold text-gray-900 leading-[1.6] whitespace-pre-line ${getQuoteFontSize(quoteState.text)}`}>
+                      {renderHighlightedText(displayText, displayMetadata.source ? displayMetadata.highlightedWords : [])}
+                      {displayMetadata.source && isMetadataVisible && (
+                        <span className="text-gray-300 font-normal ml-2 opacity-60">»</span>
+                      )}
+                    </h2>
+                  </div>
+
+                  {/* Mascot Container */}
                   <motion.div 
-                    initial={false}
-                    animate={{ opacity: isMetadataVisible ? 1 : 0, y: isMetadataVisible ? 0 : 5 }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                    className="flex flex-col gap-1"
+                    key="mascot"
+                    initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    className="w-32 h-32 shrink-0 -mb-4 -mr-4 pointer-events-none"
                   >
-                    {quoteState.isGenerating ? (
-                      <p className="text-[13px] text-gray-400 animate-pulse whitespace-pre-line">{quoteState.subtitle}</p>
-                    ) : displayMetadata.source ? (
-                      <div className="flex flex-col gap-1">
-                        <p className="text-[13px] text-gray-400 truncate max-w-[250px]">
-                          —— 《{displayMetadata.source.length > 15 ? displayMetadata.source.substring(0, 15) + '...' : displayMetadata.source}》
-                        </p>
-                        <p className="text-[12px] text-gray-400">记于 {displayMetadata.date}</p>
-                      </div>
-                    ) : (
-                      <p className="text-[13px] text-gray-400 whitespace-pre-line">{quoteState.subtitle}</p>
-                    )}
+                    <img 
+                      src="https://cdn.phototourl.com/free/2026-03-31-730a3037-1360-4f94-8f3f-00332291f68d.png" 
+                      className="w-full h-full object-contain object-right-bottom"
+                      alt="Mascot"
+                      referrerPolicy="no-referrer"
+                    />
                   </motion.div>
                 </div>
 
-                {/* View More */}
-                {displayMetadata.source && !quoteState.isGenerating && (
-                  <div className="absolute right-0 bottom-0">
-                    <button 
-                      className="flex items-center gap-1 text-[12px] text-gray-400 transition-colors cursor-default"
+                {/* Bottom Row: Green (Metadata) & Purple (AI Bar/Button) */}
+                <div className="flex items-center gap-4 mt-4 h-14">
+                  {/* Green Area: Metadata Container (Only in excerpt state) */}
+                  {hasExitedDefault && (
+                    <div className="flex-1 min-w-0">
+                      <AnimatePresence mode="wait">
+                        {displayMetadata.source && isMetadataVisible && (
+                          <motion.div 
+                            initial={{ opacity: 0, x: -20, filter: 'blur(10px)' }}
+                            animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                            exit={{ opacity: 0, x: -20, filter: 'blur(10px)' }}
+                            transition={{ 
+                              duration: 0.8, 
+                              ease: [0.34, 1.56, 0.64, 1] // Custom spring-like ease
+                            }}
+                            className="flex flex-col"
+                          >
+                            <p className="text-[12px] text-gray-400 truncate">
+                              《{displayMetadata.source}》
+                            </p>
+                            <p className="text-[12px] text-gray-400">记录于 {displayMetadata.date}</p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
+
+                  {/* Purple Area: AI Input Bar or Chat Button Container */}
+                  <motion.div 
+                    layout
+                    transition={{
+                      layout: { 
+                        type: "spring",
+                        stiffness: 120,
+                        damping: 20,
+                        mass: 1
+                      }
+                    }}
+                    className={!hasExitedDefault ? 'flex-1' : 'shrink-0 ml-auto'}
+                  >
+                    <motion.div 
+                      layout
+                      className={`flex items-center gap-3 bg-white/40 backdrop-blur-xl border border-white/30 rounded-full px-5 py-3 shadow-[0_4px_24px_-1px_rgba(0,0,0,0.06)] ${!hasExitedDefault ? 'w-full h-12' : 'h-12 w-auto'}`}
                     >
-                      <ChevronDown size={14} />
-                      深度讨论
-                    </button>
-                  </div>
-                )}
+                      <motion.div layout className="w-7 h-7 flex items-center justify-center shrink-0">
+                        <img 
+                          src="https://cdn.phototourl.com/free/2026-03-31-e4ab4c41-3964-4aab-9823-89ce63e016c4.png" 
+                          className="w-full h-full object-contain" 
+                          alt="AI" 
+                        />
+                      </motion.div>
+                      
+                      <AnimatePresence mode="wait">
+                        {!hasExitedDefault ? (
+                          <motion.span 
+                            key="search-placeholder"
+                            initial={{ opacity: 1 }}
+                            exit={{ opacity: 0, filter: 'blur(4px)' }}
+                            transition={{ duration: 0.2 }}
+                            className="text-[15px] text-gray-300 font-medium truncate"
+                          >
+                            提问、搜索和创作任何内容
+                          </motion.span>
+                        ) : (
+                          <motion.span 
+                            key="chat-label"
+                            initial={{ opacity: 0, x: 5 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.3, delay: 0.1 }}
+                            className="text-[14px] text-gray-600 font-bold whitespace-nowrap"
+                          >
+                            聊一聊
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  </motion.div>
+                </div>
               </div>
             </div>
 

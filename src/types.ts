@@ -28,3 +28,14 @@ export interface Note {
   generatingProgress?: number;
   readLater?: boolean;
 }
+
+export interface Excerpt {
+  id: string;
+  noteId: string;
+  text: string;
+  source: string;
+  date: string;
+  highlightedWords: string[];
+  highlightColor: string;
+  originalSentence?: string; // To help locate the sentence in the note
+}
