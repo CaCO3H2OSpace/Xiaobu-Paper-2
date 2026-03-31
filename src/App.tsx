@@ -5,7 +5,7 @@ import {
   MoreVertical, Plus, ChevronLeft, Inbox, Book, Settings, Trash2, X,
   Clock, CheckSquare, Copy, FolderPlus, FolderMinus, Share, Check,
   PlaySquare, ImageIcon, Link2, Mic, Pencil, Sparkles, RefreshCw, ArrowLeft,
-  Link as LinkIcon, Loader2, Bookmark, ChevronDown
+  Link as LinkIcon, Loader2, Bookmark, ChevronDown, Globe, Paperclip
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { Note, Notebook } from './types';
@@ -560,7 +560,11 @@ export default function App() {
   
   // Navigation State
   const [activeTab, setActiveTab] = useState<'notes' | 'notebooks'>('notes');
-  const [currentScreen, setCurrentScreen] = useState<'home' | 'editor' | 'notebook_detail'>('home');
+  const [currentScreen, setCurrentScreen] = useState<'home' | 'editor' | 'notebook_detail' | 'chat'>('home');
+  const [chatMode, setChatMode] = useState<'default' | 'excerpt'>('default');
+  const [chatExcerpt, setChatExcerpt] = useState<any>(null);
+  const [chatInput, setChatInput] = useState('');
+  const [isReferenceVisible, setIsReferenceVisible] = useState(true);
   
   // Selection State
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
@@ -1146,6 +1150,166 @@ export default function App() {
   };
 
   // Renderers
+  const renderChat = () => {
+    const isExcerpt = chatMode === 'excerpt' && chatExcerpt;
+
+    return (
+      <div className="flex-1 flex flex-col bg-white relative">
+        {/* Header */}
+        <div className="px-5 pt-12 pb-4 flex items-center">
+          <button 
+            onClick={() => setCurrentScreen('home')}
+            className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-900 active:scale-90 transition-transform"
+          >
+            <ArrowLeft size={20} />
+          </button>
+        </div>
+
+        {/* Chat Content */}
+        <div className="flex-1 overflow-y-auto px-6 pb-40">
+          <AnimatePresence mode="wait">
+            {!isExcerpt ? (
+              <motion.div 
+                key="default-chat"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="pt-10 flex flex-col"
+              >
+                <div className="w-20 h-20 mb-6">
+                  <img 
+                    src="https://cdn.phototourl.com/free/2026-03-31-730a3037-1360-4f94-8f3f-00332291f68d.png" 
+                    className="w-full h-full object-contain"
+                    alt="Mascot"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <h2 className="text-[24px] font-bold text-gray-900 mb-8">今日事，小布来帮</h2>
+                
+                <div className="flex flex-col gap-4">
+                  <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
+                    <span className="text-lg">🖊️</span>
+                    <span className="text-[15px]">生成 <span className="text-blue-500 font-medium">周报</span></span>
+                  </button>
+                  <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
+                    <span className="text-lg">💻</span>
+                    <span className="text-[15px]">如何自己搭建一个 <span className="text-orange-500 font-medium">Openclaw</span></span>
+                  </button>
+                  <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
+                    <span className="text-lg">🔍</span>
+                    <span className="text-[15px]">搜索任何内容</span>
+                  </button>
+                </div>
+
+                <button className="mt-8 flex items-center gap-2 text-gray-400 text-[13px] hover:text-gray-600 transition-colors">
+                  <span>换一换</span>
+                  <RefreshCw size={14} />
+                </button>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="excerpt-chat"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="pt-10 flex flex-col"
+              >
+                {/* AI Message Bubble */}
+                <div className="bg-gray-50/80 rounded-[24px] p-6 mb-8 shadow-sm border border-gray-100/50 max-w-[90%]">
+                  <p className="text-[16px] text-gray-800 leading-relaxed mb-4 font-medium">
+                    {chatExcerpt.text}
+                  </p>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-[12px] text-gray-400">—— 《{chatExcerpt.source}》</p>
+                    <p className="text-[12px] text-gray-400">记于 {chatExcerpt.date}</p>
+                  </div>
+                </div>
+
+                {/* Recommended Prompts */}
+                <div className="flex flex-col gap-4">
+                  <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
+                    <span className="text-lg">🖊️</span>
+                    <span className="text-[15px]">回顾更多Tony所说的话</span>
+                  </button>
+                  <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
+                    <span className="text-lg">💻</span>
+                    <span className="text-[15px]">Tony在什么情况下说了这句话？</span>
+                  </button>
+                  <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
+                    <span className="text-lg">🔍</span>
+                    <span className="text-[15px]">我当时为什么记录了这个</span>
+                  </button>
+                </div>
+
+                <button 
+                  onClick={() => {
+                    setChatMode('default');
+                    setChatExcerpt(null);
+                  }}
+                  className="mt-8 flex items-center gap-2 text-gray-400 text-[13px] hover:text-gray-600 transition-colors"
+                >
+                  <span>聊点别的，开始全新话题</span>
+                  <RefreshCw size={14} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Input Area */}
+        <div className="absolute bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-md">
+          <div className="bg-gray-50/50 rounded-[32px] p-4 border border-gray-100 shadow-sm">
+            {/* Reference Tag */}
+            {isExcerpt && isReferenceVisible && (
+              <div className="flex mb-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-gray-100 shadow-sm">
+                  <FileText size={14} className="text-gray-400" />
+                  <span className="text-[13px] text-gray-600 font-medium truncate max-w-[120px]">
+                    {chatExcerpt.source}
+                  </span>
+                  <button 
+                    onClick={() => setIsReferenceVisible(false)}
+                    className="p-0.5 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X size={14} className="text-gray-400" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-4">
+              <input 
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="提问、搜索或创作任何内容"
+                className="w-full bg-transparent border-none focus:ring-0 text-[16px] text-gray-900 placeholder:text-gray-300 px-1"
+              />
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5 px-2 py-1 rounded-full bg-white border border-gray-100 shadow-sm text-gray-500">
+                    <FileText size={16} />
+                    <FolderPlus size={16} />
+                    <Globe size={16} />
+                    <ChevronDown size={14} />
+                  </div>
+                  <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                    <Paperclip size={20} />
+                  </button>
+                </div>
+                
+                <button className="w-10 h-10 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+                  <Mic size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderHome = () => (
     <div className="flex flex-col h-full relative">
       <div className="flex-1 overflow-y-auto no-scrollbar">
@@ -1275,6 +1439,17 @@ export default function App() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
+                    onClick={() => {
+                      if (quoteState.source) {
+                        setChatMode('excerpt');
+                        setChatExcerpt(quoteState);
+                        setIsReferenceVisible(true);
+                      } else {
+                        setChatMode('default');
+                        setChatExcerpt(null);
+                      }
+                      setCurrentScreen('chat');
+                    }}
                     className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 backdrop-blur-xl border border-white/30 shadow-[0_4px_12px_rgba(0,0,0,0.03)] active:scale-95 transition-all group"
                   >
                     <div className="w-5 h-5 flex items-center justify-center shrink-0">
@@ -1602,9 +1777,10 @@ export default function App() {
         {currentScreen === 'home' && renderHome()}
         {currentScreen === 'notebook_detail' && renderNotebookDetail()}
         {currentScreen === 'editor' && renderEditor()}
+        {currentScreen === 'chat' && renderChat()}
 
         {/* FAB and Create Menu */}
-        {currentScreen !== 'editor' && !isMultiSelectMode && (
+        {currentScreen !== 'editor' && currentScreen !== 'chat' && !isMultiSelectMode && (
           <>
             <AnimatePresence>
               {isCreateMenuOpen && (
