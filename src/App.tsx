@@ -283,6 +283,8 @@ export default function App() {
 
   // Typing Animation State
   const [displayText, setDisplayText] = useState(quoteState.text);
+  const [displaySource, setDisplaySource] = useState(quoteState.source || "档案馆正在准备中...");
+  const [displayDate, setDisplayDate] = useState(quoteState.date ? `记录于 ${quoteState.date}` : "请持续记录吧");
   const [isMetadataVisible, setIsMetadataVisible] = useState(true);
   const [hasExitedDefault, setHasExitedDefault] = useState(false);
   const [displayMetadata, setDisplayMetadata] = useState({
@@ -293,42 +295,41 @@ export default function App() {
   });
 
   useEffect(() => {
-    // If text is fully typed and matches target
-    if (quoteState.text === displayText) {
-      if (!isMetadataVisible && !quoteState.isGenerating) {
-        // Show metadata after typing is complete
-        if (!hasExitedDefault && quoteState.source) {
-          // Sequence for first transition:
-          // 1. Wait for a moment after typing finishes
-          // 2. Start shrinking the bar AND showing metadata simultaneously
-          const sequenceTimer = setTimeout(() => {
-            setHasExitedDefault(true);
-            setIsMetadataVisible(true);
-          }, 500);
-          return () => clearTimeout(sequenceTimer);
-        } else {
-          // Subsequent excerpts or if already exited default
-          const timer = setTimeout(() => setIsMetadataVisible(true), 200);
-          return () => clearTimeout(timer);
-        }
-      }
-      return;
-    }
+    const targetText = quoteState.text;
+    const targetSource = quoteState.source || "档案馆正在准备中...";
+    const targetDate = quoteState.date ? `记录于 ${quoteState.date}` : "请持续记录吧";
 
-    // If we need to change text, hide metadata first
-    if (isMetadataVisible && displayText.length > 0) {
-      setIsMetadataVisible(false);
-      // Wait for fade out before starting deletion
-      const timer = setTimeout(() => {}, 300);
-      return () => clearTimeout(timer);
-    }
+    // Speed up
+    const deleteSpeed = 8;
+    const typeSpeed = 15;
 
     const timer = setTimeout(() => {
-      if (displayText.length > 0 && !quoteState.text.startsWith(displayText)) {
-        // Deleting phase
-        setDisplayText(prev => prev.slice(0, -1));
-      } else if (displayText.length < quoteState.text.length) {
-        // Typing phase
+      // 1. Deleting Date
+      if (displayDate.length > 0 && (targetText !== displayText || targetSource !== displaySource || targetDate !== displayDate)) {
+        if (!targetDate.startsWith(displayDate) || targetText !== displayText || targetSource !== displaySource) {
+          setDisplayDate(prev => prev.slice(0, -1));
+          return;
+        }
+      }
+      
+      // 2. Deleting Source
+      if (displaySource.length > 0 && (targetText !== displayText || targetSource !== displaySource)) {
+        if (!targetSource.startsWith(displaySource) || targetText !== displayText) {
+          setDisplaySource(prev => prev.slice(0, -1));
+          return;
+        }
+      }
+
+      // 3. Deleting Text
+      if (displayText.length > 0 && targetText !== displayText) {
+        if (!targetText.startsWith(displayText)) {
+          setDisplayText(prev => prev.slice(0, -1));
+          return;
+        }
+      }
+
+      // 4. Typing Text
+      if (displayText.length < targetText.length) {
         if (displayText === "") {
           // Update metadata exactly when we start typing the new one
           setDisplayMetadata({
@@ -337,13 +338,29 @@ export default function App() {
             highlightedWords: quoteState.highlightedWords,
             highlightColor: quoteState.highlightColor
           });
+          if (quoteState.source) setHasExitedDefault(true);
+          else setHasExitedDefault(false);
         }
-        setDisplayText(quoteState.text.slice(0, displayText.length + 1));
+        setDisplayText(targetText.slice(0, displayText.length + 1));
+        return;
       }
-    }, displayText.length > 0 && !quoteState.text.startsWith(displayText) ? 15 : 30);
+
+      // 5. Typing Source
+      if (displaySource.length < targetSource.length) {
+        setDisplaySource(targetSource.slice(0, displaySource.length + 1));
+        return;
+      }
+
+      // 6. Typing Date
+      if (displayDate.length < targetDate.length) {
+        setDisplayDate(targetDate.slice(0, displayDate.length + 1));
+        return;
+      }
+
+    }, (targetText !== displayText || targetSource !== displaySource || targetDate !== displayDate) ? deleteSpeed : typeSpeed);
 
     return () => clearTimeout(timer);
-  }, [quoteState.text, displayText, isMetadataVisible, quoteState.isGenerating]);
+  }, [quoteState.text, quoteState.source, quoteState.date, displayText, displaySource, displayDate]);
 
   const isGeneratingRef = useRef(false);
   const quoteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -508,9 +525,9 @@ export default function App() {
   };
 
   const getQuoteFontSize = (text: string) => {
-    if (text.length < 15) return 'text-[20px]';
-    if (text.length < 30) return 'text-[18px]';
-    return 'text-[16px]';
+    if (text.length < 15) return 'text-[18px]';
+    if (text.length < 30) return 'text-[16px]';
+    return 'text-[14px]';
   };
 
   const renderHighlightedText = (text: string, highlightedWords: string[] = []) => {
@@ -1154,7 +1171,7 @@ export default function App() {
         ) : (
           <>
             {/* Top Bar (Sticky) */}
-            <div className="sticky top-0 z-30 bg-white px-5 pt-8 pb-4 border-b border-gray-100">
+            <div className="sticky top-0 z-30 bg-white px-5 pt-6 pb-3 border-b border-gray-100">
               <div className="flex items-center justify-between">
                 <div className="text-gray-900">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
@@ -1185,7 +1202,7 @@ export default function App() {
             </div>
 
             {/* Excerpt Area (Scrolls with page) */}
-            <div className="px-5 pb-6 relative">
+            <div className="px-5 pb-4 relative">
               {(isQuotaExceeded || isServiceUnavailable) && (
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
@@ -1211,113 +1228,65 @@ export default function App() {
                   </div>
                 </motion.div>
               )}
-              <div className="relative min-h-[150px] flex flex-col justify-between py-4">
-                {/* Top Row: Text & Mascot */}
-                <div className="flex items-end min-h-[100px] relative">
-                  <div className="flex-1 pb-2">
-                    {/* Red Area: Text Container */}
-                    <h2 className={`font-bold text-gray-900 leading-[1.6] whitespace-pre-line ${getQuoteFontSize(quoteState.text)}`}>
+              <div className="relative flex flex-row items-end gap-4 py-2 min-h-[140px]">
+                {/* Left Column: Text & Metadata */}
+                <div className="flex-1 self-stretch flex flex-col">
+                  <div className="flex-1 flex flex-col justify-center">
+                    <h2 className={`font-bold text-gray-900 leading-[1.4] whitespace-pre-line ${getQuoteFontSize(quoteState.text)}`}>
                       {renderHighlightedText(displayText, displayMetadata.source ? displayMetadata.highlightedWords : [])}
-                      {displayMetadata.source && isMetadataVisible && (
-                        <span className="text-gray-300 font-normal ml-2 opacity-60">»</span>
-                      )}
                     </h2>
                   </div>
+                  
+                  {/* Metadata (Always visible for structural stability) */}
+                  <div className="mt-auto space-y-0.5">
+                    <div className="pb-1">
+                      <p className="text-[11px] text-gray-400 leading-relaxed line-clamp-2 opacity-80">
+                        {hasExitedDefault && displaySource && displaySource !== "档案馆正在准备中..."
+                          ? `《${displaySource}》` 
+                          : displaySource}
+                      </p>
+                      <p className="text-[11px] text-gray-300">
+                        {displayDate}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
+                {/* Right Column: Mascot & Chat Button (Always Fixed) */}
+                <div className="w-32 flex flex-col items-center justify-end shrink-0">
                   {/* Mascot Container */}
                   <motion.div 
                     key="mascot"
-                    initial={{ opacity: 0, scale: 0.8, x: 20 }}
-                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="w-32 h-32 shrink-0 -mb-4 -mr-4 pointer-events-none"
+                    className="w-28 h-28 pointer-events-none mb-1"
                   >
                     <img 
                       src="https://cdn.phototourl.com/free/2026-03-31-730a3037-1360-4f94-8f3f-00332291f68d.png" 
-                      className="w-full h-full object-contain object-right-bottom"
+                      className="w-full h-full object-contain"
                       alt="Mascot"
                       referrerPolicy="no-referrer"
                     />
                   </motion.div>
-                </div>
 
-                {/* Bottom Row: Green (Metadata) & Purple (AI Bar/Button) */}
-                <div className="flex items-center gap-4 mt-4 h-14">
-                  {/* Green Area: Metadata Container (Only in excerpt state) */}
-                  {hasExitedDefault && (
-                    <div className="flex-1 min-w-0">
-                      <AnimatePresence mode="wait">
-                        {displayMetadata.source && isMetadataVisible && (
-                          <motion.div 
-                            initial={{ opacity: 0, x: -20, filter: 'blur(10px)' }}
-                            animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-                            exit={{ opacity: 0, x: -20, filter: 'blur(10px)' }}
-                            transition={{ 
-                              duration: 0.8, 
-                              ease: [0.34, 1.56, 0.64, 1] // Custom spring-like ease
-                            }}
-                            className="flex flex-col"
-                          >
-                            <p className="text-[12px] text-gray-400 truncate">
-                              《{displayMetadata.source}》
-                            </p>
-                            <p className="text-[12px] text-gray-400">记录于 {displayMetadata.date}</p>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  )}
-
-                  {/* Purple Area: AI Input Bar or Chat Button Container */}
-                  <motion.div 
-                    layout
-                    transition={{
-                      layout: { 
-                        type: "spring",
-                        stiffness: 120,
-                        damping: 20,
-                        mass: 1
-                      }
-                    }}
-                    className={!hasExitedDefault ? 'flex-1' : 'shrink-0 ml-auto'}
+                  {/* Chat Button (Liquid Glass Style) */}
+                  <motion.button
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 backdrop-blur-xl border border-white/30 shadow-[0_4px_12px_rgba(0,0,0,0.03)] active:scale-95 transition-all group"
                   >
-                    <motion.div 
-                      layout
-                      className={`flex items-center gap-3 bg-white/40 backdrop-blur-xl border border-white/30 rounded-full px-5 py-3 shadow-[0_4px_24px_-1px_rgba(0,0,0,0.06)] ${!hasExitedDefault ? 'w-full h-12' : 'h-12 w-auto'}`}
-                    >
-                      <motion.div layout className="w-7 h-7 flex items-center justify-center shrink-0">
-                        <img 
-                          src="https://cdn.phototourl.com/free/2026-03-31-e4ab4c41-3964-4aab-9823-89ce63e016c4.png" 
-                          className="w-full h-full object-contain" 
-                          alt="AI" 
-                        />
-                      </motion.div>
-                      
-                      <AnimatePresence mode="wait">
-                        {!hasExitedDefault ? (
-                          <motion.span 
-                            key="search-placeholder"
-                            initial={{ opacity: 1 }}
-                            exit={{ opacity: 0, filter: 'blur(4px)' }}
-                            transition={{ duration: 0.2 }}
-                            className="text-[15px] text-gray-300 font-medium truncate"
-                          >
-                            提问、搜索和创作任何内容
-                          </motion.span>
-                        ) : (
-                          <motion.span 
-                            key="chat-label"
-                            initial={{ opacity: 0, x: 5 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.3, delay: 0.1 }}
-                            className="text-[14px] text-gray-600 font-bold whitespace-nowrap"
-                          >
-                            聊一聊
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
-                  </motion.div>
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                      <img 
+                        src="https://cdn.phototourl.com/free/2026-03-31-e4ab4c41-3964-4aab-9823-89ce63e016c4.png" 
+                        className="w-full h-full object-contain brightness-110" 
+                        alt="AI"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    <span className="text-[12px] text-gray-500 font-bold tracking-tight">聊一聊</span>
+                  </motion.button>
                 </div>
               </div>
             </div>
