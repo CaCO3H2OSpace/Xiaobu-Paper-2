@@ -403,10 +403,10 @@ export default function App() {
       setIsQuotaExceeded(false);
       setIsServiceUnavailable(false);
       
-      // 每 45 秒轮播一次
+      // 每 60 秒轮播一次
       quoteTimeoutRef.current = setTimeout(() => {
         generateAIQuote();
-      }, 45000);
+      }, 60000);
     } catch (error) {
       console.error("Failed to pick pre-generated quote:", error);
       // 发生错误时使用备用摘录
@@ -426,10 +426,10 @@ export default function App() {
   useEffect(() => {
     if (notes.length > 0 && !hasTriggeredRef.current) {
       hasTriggeredRef.current = true;
-      // 首次启动，45秒后开始轮播
+      // 首次启动，10秒后开始轮播
       quoteTimeoutRef.current = setTimeout(() => {
         generateAIQuote();
-      }, 45000);
+      }, 10000);
     } else if (notes.length === 0) {
       setQuoteState({
         text: "习惯记录\n期待每一次自我重逢",
@@ -609,6 +609,8 @@ export default function App() {
   // Long press logic for FAB
   const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isLongPressRef = useRef(false);
+
+  const archiveContainerRef = useRef<HTMLDivElement>(null);
 
   const handlePressStart = () => {
     isLongPressRef.current = false;
@@ -1162,135 +1164,187 @@ export default function App() {
   }, [archiveIndex]);
 
   const renderArchive = () => {
-    const currentExcerpt = PRE_GENERATED_EXCERPTS[archiveIndex];
     const totalExcerpts = PRE_GENERATED_EXCERPTS.length;
 
-    const handleCopy = () => {
-      navigator.clipboard.writeText(currentExcerpt.text);
+    const handleCopy = (text: string) => {
+      navigator.clipboard.writeText(text);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     };
 
-    const handleGoToNote = () => {
-      const note = notes.find(n => n.title === currentExcerpt.source);
+    const handleGoToNote = (source: string) => {
+      const note = notes.find(n => n.title === source);
       if (note) {
         setActiveNoteId(note.id);
         setCurrentScreen('editor');
       }
     };
 
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+      const container = e.currentTarget;
+      const scrollY = container.scrollTop;
+      const itemHeight = 400; // Fixed height for calculation
+      const newIndex = Math.round(scrollY / itemHeight);
+      if (newIndex !== archiveIndex && newIndex >= 0 && newIndex < totalExcerpts) {
+        setArchiveIndex(newIndex);
+      }
+    };
+
+    const currentExcerpt = PRE_GENERATED_EXCERPTS[archiveIndex];
+
     return (
-      <div className="flex-1 flex flex-col relative overflow-hidden bg-[#1a1a1a]">
+      <div className="flex-1 flex flex-col relative overflow-hidden bg-[#0a0a0a]">
         {/* Immersive Background */}
         <div className="absolute inset-0 z-0">
           <img 
             src="https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=2070&auto=format&fit=crop" 
-            className="w-full h-full object-cover opacity-40 mix-blend-overlay"
+            className="w-full h-full object-cover opacity-30 mix-blend-overlay"
             alt="Background"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/40 to-black/95" />
         </div>
 
-        {/* Header */}
-        <div className="relative z-10 px-6 pt-12 pb-4">
-          <div className="flex items-center justify-between mb-2">
+        {/* Header (Fixed) */}
+        <div className="relative z-30 px-6 pt-12 pb-4 flex items-center justify-between">
+          <div>
             <h1 className="text-[28px] font-bold text-white tracking-tight">摘录档案馆</h1>
-            <button 
-              onClick={() => setCurrentScreen('home')}
-              className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:scale-90 transition-transform"
-            >
-              <X size={20} />
-            </button>
+            <p className="text-[14px] text-white/40 font-medium tracking-wide">今日，与这些记录重逢</p>
           </div>
-          <p className="text-[14px] text-white/50 font-medium tracking-wide">今日，与这些记录重逢</p>
+          <button 
+            onClick={() => setCurrentScreen('home')}
+            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:scale-90 transition-transform"
+          >
+            <X size={20} />
+          </button>
         </div>
 
-        {/* Center Content */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-10 text-center">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={archiveIndex}
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 1.1, y: -20 }}
-              transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-              className="flex flex-col items-center"
-            >
-              <div className="relative mb-12">
-                <svg className="absolute -top-10 -left-10 text-white/10 w-20 h-20" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
-                </svg>
-                <h2 className="text-[22px] font-bold text-white leading-[1.6] tracking-tight drop-shadow-lg">
-                  {currentExcerpt.text}
-                </h2>
-              </div>
+        {/* Vertical Scrollable List (Lyrics Style) */}
+        <div 
+          ref={archiveContainerRef}
+          onScroll={handleScroll}
+          className="relative z-10 flex-1 overflow-y-auto snap-y snap-mandatory no-scrollbar scroll-smooth"
+        >
+          {/* Top Spacer to center the first item */}
+          <div className="h-[calc(50vh-200px-80px)]" /> 
 
-              <button 
-                onClick={handleGoToNote}
-                className="group flex flex-col items-center gap-2 p-6 rounded-3xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all active:scale-95"
-              >
-                <div className="flex items-center gap-2 text-white/60 group-hover:text-white transition-colors">
-                  <span className="text-[13px] font-medium tracking-wide">—— 《{currentExcerpt.source}》</span>
-                  <ExternalLink size={14} />
-                </div>
-                <span className="text-[11px] text-white/30">记于 {currentExcerpt.date}</span>
-              </button>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {/* Actions */}
-        <div className="relative z-10 px-6 pb-12 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={handleCopy}
-              className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition-all active:scale-95"
-              title={isCopied ? '已复制' : '复制'}
-            >
-              {isCopied ? <Check size={20} className="text-emerald-400" /> : <Copy size={20} />}
-            </button>
+          {PRE_GENERATED_EXCERPTS.map((excerpt, index) => {
+            const isActive = index === archiveIndex;
             
-            <button className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition-all active:scale-95" title="存图">
-              <Download size={20} />
+            return (
+              <div 
+                key={index}
+                className="snap-center h-[400px] flex flex-col items-center justify-center px-8 transition-all duration-500"
+              >
+                <div className={`w-full text-center transition-all duration-500 ${isActive ? 'opacity-100 scale-105' : 'opacity-20 scale-90 blur-[1px]'}`}>
+                  <div className="relative inline-block">
+                    {isActive && (
+                      <svg className="absolute -top-10 -left-6 text-white/10 w-20 h-20 -z-10" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                      </svg>
+                    )}
+                    <h2 className={`font-bold leading-[1.6] tracking-tight ${isActive ? 'text-white text-[24px]' : 'text-white/60 text-[18px]'}`}>
+                      {renderHighlightedText(excerpt.text, excerpt.highlightedWords)}
+                    </h2>
+                  </div>
+
+                  {/* Source Card (Only for active, inside the scroll item) */}
+                  <AnimatePresence>
+                    {isActive && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className="mt-8 flex justify-center"
+                      >
+                        <button 
+                          onClick={() => handleGoToNote(excerpt.source)}
+                          className="w-full max-w-[280px] p-5 rounded-3xl bg-white/5 backdrop-blur-md border border-white/10 flex flex-col gap-1 relative group active:scale-95 transition-transform text-left"
+                        >
+                          <div className="flex items-center justify-between text-white/60 group-hover:text-white transition-colors">
+                            <span className="text-[13px] font-medium tracking-wide truncate pr-4">—— 《{excerpt.source}》</span>
+                            <ExternalLink size={14} className="shrink-0" />
+                          </div>
+                          <span className="text-[11px] text-white/30">记于 {excerpt.date}</span>
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Bottom Spacer to center the last item */}
+          <div className="h-[calc(50vh-200px-120px)]" />
+        </div>
+
+        {/* Global Actions (Fixed at bottom) */}
+        <div className="relative z-30 px-6 pt-4 pb-6 bg-gradient-to-t from-black via-black/80 to-transparent">
+          <div className="flex items-center justify-between w-full max-w-[340px] mx-auto mb-8">
+            <div className="flex gap-3">
+              <button 
+                onClick={() => handleCopy(currentExcerpt.text)}
+                className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 active:scale-90 transition-all hover:bg-white/20"
+              >
+                {isCopied ? <Check size={20} className="text-emerald-400" /> : <Copy size={20} />}
+              </button>
+              <button className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 active:scale-90 transition-all hover:bg-white/20">
+                <Download size={20} />
+              </button>
+            </div>
+
+            <button 
+              onClick={() => {
+                setChatMode('excerpt');
+                setChatExcerpt(currentExcerpt);
+                setIsReferenceVisible(true);
+                setCurrentScreen('chat');
+              }}
+              className="flex items-center gap-2 px-6 py-3 rounded-full bg-white text-gray-900 shadow-xl active:scale-95 transition-all hover:bg-gray-100"
+            >
+              <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                <img 
+                  src="https://cdn.phototourl.com/free/2026-03-31-e4ab4c41-3964-4aab-9823-89ce63e016c4.png" 
+                  className="w-full h-full object-contain" 
+                  alt="AI"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <span className="text-[14px] font-bold">回顾</span>
             </button>
           </div>
 
-          <button 
-            onClick={() => {
-              setChatMode('excerpt');
-              setChatExcerpt(currentExcerpt);
-              setIsReferenceVisible(true);
-              setCurrentScreen('chat');
-            }}
-            className="flex items-center gap-2 px-6 py-3 rounded-full bg-white text-gray-900 shadow-xl hover:scale-105 transition-all active:scale-95"
-          >
-            <div className="w-5 h-5 flex items-center justify-center shrink-0">
-              <img 
-                src="https://cdn.phototourl.com/free/2026-03-31-e4ab4c41-3964-4aab-9823-89ce63e016c4.png" 
-                className="w-full h-full object-contain" 
-                alt="AI"
-                referrerPolicy="no-referrer"
-              />
+          {/* Pagination Info */}
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex items-center gap-6">
+              <button 
+                onClick={() => {
+                  if (archiveContainerRef.current) {
+                    const newIndex = Math.max(0, archiveIndex - 1);
+                    archiveContainerRef.current.scrollTo({ top: newIndex * 400, behavior: 'smooth' });
+                  }
+                }}
+                className="text-white/30 hover:text-white transition-colors p-1"
+              >
+                <ChevronsLeft size={24} className="rotate-90" />
+              </button>
+              <span className="text-[16px] font-bold text-white tracking-widest min-w-[60px] text-center">
+                {archiveIndex + 1} <span className="text-white/30 font-medium mx-1">/</span> {totalExcerpts}
+              </span>
+              <button 
+                onClick={() => {
+                  if (archiveContainerRef.current) {
+                    const newIndex = Math.min(totalExcerpts - 1, archiveIndex + 1);
+                    archiveContainerRef.current.scrollTo({ top: newIndex * 400, behavior: 'smooth' });
+                  }
+                }}
+                className="text-white/30 hover:text-white transition-colors p-1"
+              >
+                <ChevronsRight size={24} className="rotate-90" />
+              </button>
             </div>
-            <span className="text-[14px] font-bold">回顾</span>
-          </button>
-        </div>
-
-        {/* Pagination Controls */}
-        <div className="relative z-10 px-6 pb-10 flex items-center justify-between">
-          <button 
-            onClick={() => setArchiveIndex(prev => (prev > 0 ? prev - 1 : totalExcerpts - 1))}
-            className="w-12 h-12 rounded-full flex items-center justify-center text-white/40 hover:text-white transition-colors active:scale-90"
-          >
-            <ChevronsLeft size={28} />
-          </button>
-          
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-[16px] font-bold text-white tracking-widest">
-              {archiveIndex + 1} <span className="text-white/30 font-medium mx-1">/</span> {totalExcerpts}
-            </span>
-            <div className="flex gap-1">
+            <div className="flex gap-1.5">
               {Array.from({ length: totalExcerpts }).map((_, i) => (
                 <div 
                   key={i} 
@@ -1299,13 +1353,6 @@ export default function App() {
               ))}
             </div>
           </div>
-
-          <button 
-            onClick={() => setArchiveIndex(prev => (prev < totalExcerpts - 1 ? prev + 1 : 0))}
-            className="w-12 h-12 rounded-full flex items-center justify-center text-white/40 hover:text-white transition-colors active:scale-90"
-          >
-            <ChevronsRight size={28} />
-          </button>
         </div>
       </div>
     );
@@ -1998,7 +2045,7 @@ export default function App() {
                       hidden: { opacity: 0 },
                       visible: { opacity: 1 }
                     }}
-                    className="w-full bg-white/90 backdrop-blur-xl rounded-3xl p-2 mb-4 shadow-[0_8px_30px_rgb(0,0,0,0.12)] pointer-events-auto border border-white/50 flex flex-col relative overflow-hidden"
+                    className="w-full pointer-events-auto flex flex-col relative"
                   >
                     <AnimatePresence mode="popLayout">
                       {createMenuState === 'default' && (
@@ -2011,108 +2058,98 @@ export default function App() {
                               scale: 1,
                               transition: {
                                 duration: 0.2,
-                                staggerChildren: 0.06,
-                                staggerDirection: -1
+                                staggerChildren: 0.08,
                               }
                             }
                           }}
                           exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-                          className="flex flex-col w-full"
+                          className="flex flex-col w-full gap-3 mb-4"
                         >
-                        {/* 启发笔记 */}
-                        <motion.button 
-                          variants={{
-                            hidden: { opacity: 0, y: 15, scale: 0.95 },
-                            visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 400, damping: 30 } }
-                          }}
-                          className="p-4 flex items-center gap-4 border-b border-gray-100/50 hover:bg-gray-50/50 transition-colors rounded-t-2xl relative h-[76px]"
-                        >
-                          {/* 破圈拟人 Icon */}
-                          <div className="absolute bottom-2 left-4 w-12 h-16 z-20 pointer-events-none flex items-end justify-center">
-                            <motion.div 
-                              animate={{ y: [0, -6, 0] }} 
-                              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                              className="relative"
+                          {/* 启发式笔记 - 高端黑金卡片 */}
+                          <motion.button 
+                            variants={{
+                              hidden: { opacity: 0, y: 15, scale: 0.95 },
+                              visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 400, damping: 30 } }
+                            }}
+                            className="w-full p-5 rounded-[28px] bg-gradient-to-br from-gray-800 to-black relative overflow-hidden flex items-center gap-5 shadow-2xl active:scale-[0.98] transition-transform group"
+                          >
+                            {/* Mascot Icon */}
+                            <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
+                              <motion.div 
+                                animate={{ y: [0, -4, 0] }} 
+                                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                className="relative"
+                              >
+                                <img 
+                                  src="https://cdn.phototourl.com/free/2026-03-26-6304bee5-2b6a-4fdd-8b23-75648ac52af8.png" 
+                                  alt="AI Mascot" 
+                                  className="w-14 h-14 object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] relative z-10"
+                                  referrerPolicy="no-referrer"
+                                />
+                                <motion.div
+                                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                                  className="absolute -top-1 -right-1 text-yellow-400 z-20"
+                                >
+                                  <Sparkles size={14} fill="currentColor" />
+                                </motion.div>
+                              </motion.div>
+                            </div>
+
+                            <div className="flex flex-col items-start text-left z-10">
+                              <span className="text-[20px] font-bold text-white tracking-tight">启发式笔记</span>
+                              <span className="text-[12px] text-white/50 mt-1 font-medium">AI 采访你，轻松成好文</span>
+                            </div>
+
+                            {/* Decorative background elements */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-white/10 transition-colors" />
+                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl -ml-12 -mb-12" />
+                          </motion.button>
+
+                          {/* 三合一功能面板 */}
+                          <motion.div 
+                            variants={{
+                              hidden: { opacity: 0, y: 15, scale: 0.95 },
+                              visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 400, damping: 30 } }
+                            }}
+                            className="w-full bg-white/90 backdrop-blur-xl rounded-[28px] overflow-hidden border border-white/50 shadow-lg flex flex-col"
+                          >
+                            {/* 会议笔记 */}
+                            <button className="w-full p-5 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-gray-50 active:bg-gray-100">
+                              <div className="w-11 h-11 rounded-full bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100">
+                                <Mic size={22} className="text-gray-600" />
+                              </div>
+                              <div className="flex flex-col items-start text-left">
+                                <span className="font-bold text-[16px] text-gray-900">会议笔记</span>
+                                <span className="text-[12px] text-gray-500 mt-0.5">边录边记，自动整理重点与收获</span>
+                              </div>
+                            </button>
+                            
+                            {/* 文件转笔记 */}
+                            <button 
+                              onClick={() => setCreateMenuState('attachment')}
+                              className="w-full p-5 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-gray-50 active:bg-gray-100"
                             >
-                              {/* AI Stars */}
-                              <motion.div
-                                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-                                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                                className="absolute -top-1 -right-2 text-yellow-400"
-                              >
-                                <Sparkles size={12} fill="currentColor" />
-                              </motion.div>
-                              <motion.div
-                                animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0.9, 0.4] }}
-                                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                                className="absolute top-4 -left-3 text-yellow-400"
-                              >
-                                <Sparkles size={10} fill="currentColor" />
-                              </motion.div>
-                              <motion.div
-                                animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.8, 0.3] }}
-                                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                                className="absolute bottom-2 -right-3 text-yellow-400"
-                              >
-                                <Sparkles size={8} fill="currentColor" />
-                              </motion.div>
+                              <div className="w-11 h-11 rounded-full bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100">
+                                <FileText size={22} className="text-gray-600" />
+                              </div>
+                              <div className="flex flex-col items-start text-left">
+                                <span className="font-bold text-[16px] text-gray-900">文件转笔记</span>
+                                <span className="text-[12px] text-gray-500 mt-0.5">小布记忆/便签/录音/图片/视频</span>
+                              </div>
+                            </button>
 
-                              <img 
-                                src="https://cdn.phototourl.com/free/2026-03-26-6304bee5-2b6a-4fdd-8b23-75648ac52af8.png" 
-                                alt="吉祥物" 
-                                referrerPolicy="no-referrer"
-                                className="w-14 h-14 object-contain drop-shadow-lg relative z-10"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                              />
-                            </motion.div>
-                          </div>
-                          <div className="w-12 shrink-0" /> {/* Spacer */}
-                          <div className="flex flex-col items-start text-left z-10">
-                            <span className="font-bold text-[16px] text-gray-900">启发式创作</span>
-                            <span className="text-[11px] text-gray-500 mt-0.5">无需指令，AI 问你，好问自然成好文</span>
-                          </div>
-                        </motion.button>
-
-                        {/* 会议笔记 */}
-                        <motion.button 
-                          variants={{
-                            hidden: { opacity: 0, y: 15, scale: 0.95 },
-                            visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 400, damping: 30 } }
-                          }}
-                          className="p-4 flex items-center gap-4 border-b border-gray-100/50 hover:bg-gray-50/50 transition-colors h-[76px]"
-                        >
-                          <div className="w-12 flex items-center justify-center shrink-0">
-                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                              <Mic size={20} className="text-gray-600" />
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-start text-left">
-                            <span className="font-bold text-[15px] text-gray-900">会议笔记</span>
-                            <span className="text-[11px] text-gray-500 mt-0.5">边录边记，金句重点智能提炼</span>
-                          </div>
-                        </motion.button>
-
-                        {/* 附件笔记 */}
-                        <motion.button 
-                          variants={{
-                            hidden: { opacity: 0, y: 15, scale: 0.95 },
-                            visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 400, damping: 30 } }
-                          }}
-                          onClick={() => setCreateMenuState('attachment')}
-                          className="p-4 flex items-center gap-4 hover:bg-gray-50/50 transition-colors rounded-b-2xl h-[76px]"
-                        >
-                          <div className="w-12 flex items-center justify-center shrink-0">
-                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                              <Link2 size={20} className="text-gray-600" />
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-start text-left">
-                            <span className="font-bold text-[15px] text-gray-900">添加附件</span>
-                            <span className="text-[11px] text-gray-500 mt-0.5">StripNote / 便签 / 音视频 / 文档 / 链接</span>
-                          </div>
-                        </motion.button>
+                            {/* 链接转笔记 */}
+                            <button className="w-full p-5 flex items-center gap-4 hover:bg-gray-50 transition-colors active:bg-gray-100">
+                              <div className="w-11 h-11 rounded-full bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100">
+                                <Link2 size={22} className="text-gray-600" />
+                              </div>
+                              <div className="flex flex-col items-start text-left">
+                                <span className="font-bold text-[16px] text-gray-900">链接转笔记</span>
+                                <span className="text-[12px] text-gray-500 mt-0.5">公众号/小红书/抖音/B站</span>
+                              </div>
+                            </button>
+                          </motion.div>
                         </motion.div>
                       )}
 
