@@ -2063,7 +2063,7 @@ export default function App() {
                             }
                           }}
                           exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-                          className="flex flex-col w-full gap-3 mb-4"
+                          className="flex flex-col w-full gap-3 mb-1"
                         >
                           {/* 启发式笔记 - 高端黑金卡片 */}
                           <motion.button 
@@ -2071,10 +2071,10 @@ export default function App() {
                               hidden: { opacity: 0, y: 15, scale: 0.95 },
                               visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 400, damping: 30 } }
                             }}
-                            className="w-full p-5 rounded-[28px] bg-gradient-to-br from-gray-800 to-black relative overflow-hidden flex items-center gap-5 shadow-2xl active:scale-[0.98] transition-transform group"
+                            className="w-full h-[120px] rounded-[32px] bg-gradient-to-br from-[#2a2a2a] to-[#000000] relative overflow-hidden flex items-center shadow-2xl active:scale-[0.98] transition-transform group px-6"
                           >
-                            {/* Mascot Icon */}
-                            <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
+                            {/* Mascot Icon - Enlarged for impact */}
+                            <div className="relative w-28 h-28 shrink-0 flex items-center justify-center -ml-4">
                               <motion.div 
                                 animate={{ y: [0, -4, 0] }} 
                                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -2083,27 +2083,27 @@ export default function App() {
                                 <img 
                                   src="https://cdn.phototourl.com/free/2026-03-26-6304bee5-2b6a-4fdd-8b23-75648ac52af8.png" 
                                   alt="AI Mascot" 
-                                  className="w-14 h-14 object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] relative z-10"
+                                  className="w-28 h-28 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.3)] relative z-10"
                                   referrerPolicy="no-referrer"
                                 />
                                 <motion.div
                                   animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
                                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                                  className="absolute -top-1 -right-1 text-yellow-400 z-20"
+                                  className="absolute top-0 right-0 text-yellow-400 z-20"
                                 >
-                                  <Sparkles size={14} fill="currentColor" />
+                                  <Sparkles size={18} fill="currentColor" />
                                 </motion.div>
                               </motion.div>
                             </div>
 
-                            <div className="flex flex-col items-start text-left z-10">
-                              <span className="text-[20px] font-bold text-white tracking-tight">启发式笔记</span>
-                              <span className="text-[12px] text-white/50 mt-1 font-medium">AI 采访你，轻松成好文</span>
+                            <div className="flex flex-col items-start text-left z-10 ml-2">
+                              <span className="text-[24px] font-bold text-white tracking-tight leading-none">启发式笔记</span>
+                              <span className="text-[14px] text-white/60 mt-2.5 font-medium">AI 采访你，轻松成好文</span>
                             </div>
 
                             {/* Decorative background elements */}
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-white/10 transition-colors" />
-                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl -ml-12 -mb-12" />
+                            <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-3xl -mr-24 -mt-24 group-hover:bg-white/10 transition-colors" />
+                            <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -ml-16 -mb-16" />
                           </motion.button>
 
                           {/* 三合一功能面板 */}
@@ -2459,7 +2459,7 @@ export default function App() {
                 animate={{ 
                   height: createMenuState === 'analyzing' ? 0 : 64,
                   opacity: createMenuState === 'analyzing' ? 0 : 1,
-                  marginTop: createMenuState === 'analyzing' ? 0 : 16
+                  marginTop: createMenuState === 'analyzing' ? 0 : 4
                 }}
                 className="w-full relative pointer-events-none"
               >
