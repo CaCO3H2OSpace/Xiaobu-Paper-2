@@ -5,6 +5,7 @@ import {
   MoreVertical, Plus, ChevronLeft, Inbox, Book, Settings, Trash2, X,
   Clock, CheckSquare, Copy, FolderPlus, FolderMinus, Share, Check,
   PlaySquare, ImageIcon, Link2, Mic, Pencil, Sparkles, RefreshCw, ArrowLeft,
+  MessageSquarePlus, AudioLines,
   Link as LinkIcon, Loader2, Bookmark, ChevronDown, Globe, Paperclip,
   ChevronsRight, ChevronsLeft, Download, ExternalLink
 } from 'lucide-react';
@@ -639,7 +640,6 @@ export default function App() {
       setCreateMenuState('default');
       setIsCreateMenuOpen(true);
     } else {
-      setIsRecordingOpen(true);
       setIsCreateMenuOpen(false);
       setTimeout(() => setCreateMenuState('default'), 200);
     }
@@ -2021,19 +2021,19 @@ export default function App() {
             <AnimatePresence>
               {isCreateMenuOpen && (
                 <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                  animate={{ opacity: 1, backdropFilter: "blur(5px)" }}
+                  exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
                   onClick={() => {
                     setIsCreateMenuOpen(false);
                     setTimeout(() => setCreateMenuState('default'), 200);
                   }}
-                  className="absolute inset-0 bg-black/40 z-40 pointer-events-auto"
+                  className="absolute inset-0 bg-white/20 z-40 pointer-events-auto"
                 />
               )}
             </AnimatePresence>
 
-            <div className="absolute bottom-[calc(2.5rem+env(safe-area-inset-bottom))] left-6 right-6 z-50 flex flex-col items-center pointer-events-none">
+            <div className="absolute bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-6 right-6 z-50 flex flex-col items-center pointer-events-none">
               <AnimatePresence>
                 {isCreateMenuOpen && (
                   <motion.div 
@@ -2042,39 +2042,47 @@ export default function App() {
                     animate="visible"
                     exit="hidden"
                     variants={{
-                      hidden: { opacity: 0 },
-                      visible: { opacity: 1 }
+                      hidden: { opacity: 0, y: 20 },
+                      visible: { opacity: 1, y: 0 }
                     }}
-                    className="w-full pointer-events-auto flex flex-col relative"
+                    className="w-full pointer-events-auto flex flex-col relative gap-3 mb-1"
                   >
                     <AnimatePresence mode="popLayout">
                       {createMenuState === 'default' && (
                         <motion.div
                           key="default"
                           variants={{
-                            hidden: { opacity: 0, scale: 0.95 },
+                            hidden: { opacity: 0 },
                             visible: { 
                               opacity: 1, 
-                              scale: 1,
                               transition: {
                                 duration: 0.2,
-                                staggerChildren: 0.08,
+                                ease: "easeOut",
+                                staggerChildren: 0.05,
                               }
                             }
                           }}
-                          exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-                          className="flex flex-col w-full gap-3 mb-1"
+                          exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                          className="flex flex-col w-full gap-3"
                         >
                           {/* 启发式笔记 - 高端黑金卡片 */}
                           <motion.button 
                             variants={{
-                              hidden: { opacity: 0, y: 15, scale: 0.95 },
-                              visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 400, damping: 30 } }
+                              hidden: { opacity: 0 },
+                              visible: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } }
                             }}
-                            className="w-full h-[120px] rounded-[32px] bg-gradient-to-br from-[#2a2a2a] to-[#000000] relative overflow-hidden flex items-center shadow-2xl active:scale-[0.98] transition-transform group px-6"
+                            className="w-full h-[120px] rounded-[32px] bg-[#1a1a1a] relative overflow-hidden flex items-center shadow-2xl active:scale-[0.98] transition-transform group px-8"
                           >
-                            {/* Mascot Icon - Enlarged for impact */}
-                            <div className="relative w-28 h-28 shrink-0 flex items-center justify-center -ml-4">
+                            <div className="flex flex-col items-start text-left z-10">
+                              <div className="flex items-center gap-1.5 mb-2">
+                                <Sparkles size={16} className="text-orange-500 fill-orange-500" />
+                              </div>
+                              <span className="text-[18px] font-bold text-white tracking-tight leading-none">启发式笔记</span>
+                              <span className="text-[11px] text-white/50 mt-2 font-medium">AI 采访你，轻松成好文</span>
+                            </div>
+
+                            {/* Mascot Icon - Positioned Right like reference */}
+                            <div className="absolute -right-6 -bottom-12 w-56 h-44 flex items-end justify-center">
                               <motion.div 
                                 animate={{ y: [0, -4, 0] }} 
                                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -2083,73 +2091,78 @@ export default function App() {
                                 <img 
                                   src="https://cdn.phototourl.com/free/2026-03-26-6304bee5-2b6a-4fdd-8b23-75648ac52af8.png" 
                                   alt="AI Mascot" 
-                                  className="w-28 h-28 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.3)] relative z-10"
+                                  className="w-44 h-44 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] relative z-10 scale-x-[-1]"
                                   referrerPolicy="no-referrer"
                                 />
-                                <motion.div
-                                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-                                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                                  className="absolute top-0 right-0 text-yellow-400 z-20"
-                                >
-                                  <Sparkles size={18} fill="currentColor" />
-                                </motion.div>
                               </motion.div>
                             </div>
-
-                            <div className="flex flex-col items-start text-left z-10 ml-2">
-                              <span className="text-[24px] font-bold text-white tracking-tight leading-none">启发式笔记</span>
-                              <span className="text-[14px] text-white/60 mt-2.5 font-medium">AI 采访你，轻松成好文</span>
-                            </div>
-
-                            {/* Decorative background elements */}
-                            <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-3xl -mr-24 -mt-24 group-hover:bg-white/10 transition-colors" />
-                            <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -ml-16 -mb-16" />
                           </motion.button>
 
-                          {/* 三合一功能面板 */}
-                          <motion.div 
-                            variants={{
-                              hidden: { opacity: 0, y: 15, scale: 0.95 },
-                              visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 400, damping: 30 } }
-                            }}
-                            className="w-full bg-white/90 backdrop-blur-xl rounded-[28px] overflow-hidden border border-white/50 shadow-lg flex flex-col"
-                          >
-                            {/* 会议笔记 */}
-                            <button className="w-full p-5 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-gray-50 active:bg-gray-100">
-                              <div className="w-11 h-11 rounded-full bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100">
-                                <Mic size={22} className="text-gray-600" />
-                              </div>
-                              <div className="flex flex-col items-start text-left">
-                                <span className="font-bold text-[16px] text-gray-900">会议笔记</span>
-                                <span className="text-[12px] text-gray-500 mt-0.5">边录边记，自动整理重点与收获</span>
-                              </div>
-                            </button>
-                            
-                            {/* 文件转笔记 */}
-                            <button 
-                              onClick={() => setCreateMenuState('attachment')}
-                              className="w-full p-5 flex items-center gap-4 hover:bg-gray-50 transition-colors border-b border-gray-50 active:bg-gray-100"
+                          {/* Middle Grid: 会议笔记 & 口述记 */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <motion.button 
+                              variants={{
+                                hidden: { opacity: 0 },
+                                visible: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } }
+                              }}
+                              className="aspect-[1.3/1] rounded-[32px] bg-white/80 backdrop-blur-md p-5 flex flex-col items-start justify-between shadow-sm border border-white/40 active:scale-[0.96] transition-transform"
                             >
-                              <div className="w-11 h-11 rounded-full bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100">
-                                <FileText size={22} className="text-gray-600" />
+                              <div className="w-8 h-8 flex items-center justify-center">
+                                <img src="https://cdn.phototourl.com/member/2026-04-02-ebc43aa3-3847-4212-9e91-4c697a3a980f.png" alt="会议笔记" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                               </div>
-                              <div className="flex flex-col items-start text-left">
-                                <span className="font-bold text-[16px] text-gray-900">文件转笔记</span>
-                                <span className="text-[12px] text-gray-500 mt-0.5">小布记忆/便签/录音/图片/视频</span>
+                              <div className="text-left">
+                                <p className="font-bold text-[16px] text-gray-900">会议笔记</p>
+                                <p className="text-[11px] text-gray-400 mt-1 leading-tight">记录思考，自动成稿</p>
                               </div>
-                            </button>
+                            </motion.button>
 
-                            {/* 链接转笔记 */}
-                            <button className="w-full p-5 flex items-center gap-4 hover:bg-gray-50 transition-colors active:bg-gray-100">
-                              <div className="w-11 h-11 rounded-full bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100">
-                                <Link2 size={22} className="text-gray-600" />
+                            <motion.button 
+                              variants={{
+                                hidden: { opacity: 0 },
+                                visible: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } }
+                              }}
+                              className="aspect-[1.3/1] rounded-[32px] bg-white/80 backdrop-blur-md p-5 flex flex-col items-start justify-between shadow-sm border border-white/40 active:scale-[0.96] transition-transform"
+                            >
+                              <div className="w-8 h-8 flex items-center justify-center">
+                                <img src="https://cdn.phototourl.com/member/2026-04-02-ea81de41-9157-4146-9d8f-197fdf4ec40d.png" alt="口述记" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                               </div>
-                              <div className="flex flex-col items-start text-left">
-                                <span className="font-bold text-[16px] text-gray-900">链接转笔记</span>
-                                <span className="text-[12px] text-gray-500 mt-0.5">公众号/小红书/抖音/B站</span>
+                              <div className="text-left">
+                                <p className="font-bold text-[16px] text-gray-900">口述记</p>
+                                <p className="text-[11px] text-gray-400 mt-1 leading-tight">瞬时灵感，你说我记</p>
                               </div>
-                            </button>
-                          </motion.div>
+                            </motion.button>
+                          </div>
+
+                          {/* Bottom Grid: 空白笔记 & 更多 */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <motion.button 
+                              variants={{
+                                hidden: { opacity: 0 },
+                                visible: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } }
+                              }}
+                              onClick={() => {}}
+                              className="h-[64px] rounded-[24px] bg-white/80 backdrop-blur-md px-6 flex items-center gap-3 shadow-sm border border-white/40 active:scale-[0.96] transition-transform"
+                            >
+                              <div className="w-6 h-6 flex items-center justify-center">
+                                <img src="https://cdn.phototourl.com/member/2026-04-02-9361b076-4eea-4c70-87bf-50ccc55e944e.png" alt="空白笔记" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                              </div>
+                              <span className="font-bold text-[15px] text-gray-900">空白笔记</span>
+                            </motion.button>
+
+                            <motion.button 
+                              variants={{
+                                hidden: { opacity: 0 },
+                                visible: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } }
+                              }}
+                              onClick={() => {}}
+                              className="h-[64px] rounded-[24px] bg-white/80 backdrop-blur-md px-6 flex items-center gap-3 shadow-sm border border-white/40 active:scale-[0.96] transition-transform"
+                            >
+                              <div className="w-6 h-6 flex items-center justify-center">
+                                <img src="https://cdn.phototourl.com/member/2026-04-02-68cddbca-54b8-41f4-9575-4e7287c85daa.png" alt="更多" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                              </div>
+                              <span className="font-bold text-[15px] text-gray-900">更多</span>
+                            </motion.button>
+                          </div>
                         </motion.div>
                       )}
 
@@ -2461,106 +2474,52 @@ export default function App() {
                   opacity: createMenuState === 'analyzing' ? 0 : 1,
                   marginTop: createMenuState === 'analyzing' ? 0 : 4
                 }}
-                className="w-full relative pointer-events-none"
+                className="w-full relative pointer-events-none flex items-center justify-end gap-4"
               >
-                <AnimatePresence>
-                  {isCreateMenuOpen && !isRecordingOpen && createMenuState !== 'analyzing' && (
-                    <motion.button
-                      key="left-btn"
-                      initial={{ opacity: 0, scale: 0.5, left: "calc(50% - 32px)" }}
-                      animate={{ opacity: 1, scale: 1, left: 0 }}
-                      exit={{ opacity: 0, scale: 0.5, left: "calc(50% - 32px)" }}
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                      onClick={() => { 
-                        handleCreateNote(activeNotebook?.id); 
-                        setIsCreateMenuOpen(false); 
-                        setTimeout(() => setCreateMenuState('default'), 200);
-                      }}
-                      className="absolute top-0 w-[64px] h-[64px] rounded-full bg-white shadow-[0_8px_20px_rgba(0,0,0,0.08)] flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-colors shrink-0 pointer-events-auto border border-gray-100/50"
-                    >
-                      <Pencil size={24} />
-                    </motion.button>
-                  )}
-                </AnimatePresence>
+                {/* Settings Button - Left side */}
+                <div className="flex-1 flex justify-start">
+                  <AnimatePresence>
+                    {isCreateMenuOpen && !isRecordingOpen && createMenuState !== 'analyzing' && (
+                      <motion.button
+                        key="settings-btn"
+                        initial={{ opacity: 0, scale: 0.5, x: -20 }}
+                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.5, x: -20 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        className="w-[64px] h-[64px] rounded-full bg-white/40 backdrop-blur-md flex items-center justify-center text-gray-400 hover:bg-white/60 transition-colors shrink-0 pointer-events-auto border border-white/20"
+                      >
+                        <Settings size={24} />
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+                </div>
 
+                {/* FAB - Right side */}
                 <AnimatePresence>
                   {!isRecordingOpen && createMenuState !== 'analyzing' && (
                     <motion.button 
                       key="fab"
-                      layoutId="voice-panel"
-                      onMouseDown={handlePressStart}
-                      onMouseUp={handlePressEnd}
-                      onMouseLeave={handlePressEnd}
-                      onTouchStart={handlePressStart}
-                      onTouchEnd={handlePressEnd}
                       onClick={handleFabClick}
                       initial={false}
                       animate={{
-                        width: isCreateMenuOpen ? "calc(100% - 152px)" : 64,
-                        left: isCreateMenuOpen ? "76px" : "calc(50% - 32px)",
-                        backgroundColor: "#111827",
-                        boxShadow: isCreateMenuOpen ? "0 8px 20px rgba(0,0,0,0.2)" : "0 8px 20px rgba(0,0,0,0.3)",
+                        backgroundColor: isCreateMenuOpen ? "#ffffff" : "#111827",
+                        boxShadow: isCreateMenuOpen ? "0 8px 20px rgba(0,0,0,0.05)" : "0 8px 20px rgba(0,0,0,0.3)",
                       }}
                       style={{ borderRadius: 32 }}
                       exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.1 } }}
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                      className="absolute top-0 h-[64px] flex items-center justify-center overflow-hidden pointer-events-auto"
+                      className="h-[64px] w-[64px] flex items-center justify-center overflow-hidden pointer-events-auto border border-white/20 shrink-0 relative"
                     >
-                      <AnimatePresence mode="wait">
-                        {!isCreateMenuOpen ? (
-                          <motion.div
-                            key="plus"
-                            initial={{ opacity: 0, rotate: -90 }}
-                            animate={{ opacity: 1, rotate: 0 }}
-                            exit={{ opacity: 0, rotate: 90 }}
-                            transition={{ duration: 0.15 }}
-                            className="absolute inset-0 flex items-center justify-center text-white"
-                          >
-                            <Plus size={32} className="stroke-[2.5]" />
-                          </motion.div>
-                        ) : (
-                          <motion.div
-                            key="expanded"
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.8 }}
-                            transition={{ duration: 0.2 }}
-                            className="w-full h-full flex items-center justify-center gap-3 text-white"
-                          >
-                            <img 
-                              src="https://cdn.phototourl.com/free/2026-03-27-67c1be21-1d10-4957-bd11-5b7c19abfb2d.png" 
-                              alt="想法速记" 
-                              referrerPolicy="no-referrer"
-                              className="w-6 h-6 shrink-0 object-contain"
-                            />
-                            <span className="font-bold text-[16px] tracking-wide">想法速记</span>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </motion.button>
-                  )}
-                </AnimatePresence>
-
-                <AnimatePresence>
-                  {isCreateMenuOpen && !isRecordingOpen && createMenuState !== 'analyzing' && (
-                    <motion.button
-                      key="right-btn"
-                      initial={{ opacity: 0, scale: 0.5, right: "calc(50% - 32px)" }}
-                      animate={{ opacity: 1, scale: 1, right: 0 }}
-                      exit={{ opacity: 0, scale: 0.5, right: "calc(50% - 32px)" }}
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                      onClick={() => {
-                        if (createMenuState === 'default') {
-                          setIsCreateMenuOpen(false);
-                        } else if (createMenuState === 'external_link') {
-                          setCreateMenuState('attachment');
-                        } else {
-                          setCreateMenuState('default');
-                        }
-                      }}
-                      className="absolute top-0 w-[64px] h-[64px] rounded-full bg-white shadow-[0_8px_20px_rgba(0,0,0,0.08)] flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors shrink-0 pointer-events-auto border border-gray-100/50"
-                    >
-                      {createMenuState === 'default' ? <X size={24} /> : <ArrowLeft size={24} />}
+                      <motion.div
+                        animate={{ 
+                          rotate: isCreateMenuOpen ? 45 : 0,
+                          color: isCreateMenuOpen ? "#111827" : "#ffffff"
+                        }}
+                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                        className="absolute inset-0 flex items-center justify-center"
+                      >
+                        <Plus size={32} className="stroke-[2.5]" />
+                      </motion.div>
                     </motion.button>
                   )}
                 </AnimatePresence>
