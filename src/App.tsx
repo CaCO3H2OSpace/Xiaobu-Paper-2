@@ -10,9 +10,12 @@ import {
   ChevronsRight, ChevronsLeft, Download, ExternalLink
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
+import html2canvas from 'html2canvas';
 import { Note, Notebook } from './types';
 import TagEditorPanel from './components/TagEditorPanel';
 import VoiceRecordingPanel from './components/VoiceRecordingPanel';
+
+type Screen = 'home' | 'editor' | 'notebook_detail' | 'chat' | 'archive' | 'poster';
 
 const NOTEBOOK_COLORS = ['#E5E7EB', '#F5E6E6', '#E6F5E9', '#E6EEF5', '#F5E6F0', '#F5F0E6'];
 
@@ -42,81 +45,147 @@ const FALLBACK_QUOTES = [
 
 const PRE_GENERATED_EXCERPTS = [
   {
-    text: "我们要找到自己的优势，女性用户 👩‍💼 多，画像 🎨 很重要且会持续调整。",
+    text: "我们要找到自己的优势，女性用户 👩‍💼 多。画像 🎨 很重要，画像还会继续调整。",
     source: "打苹果软肋：设计风格与人群定位",
     date: "2026.03.25",
     highlightedWords: ["优势", "画像"],
-    highlightColor: "text-rose-600"
+    highlightColor: "text-rose-600",
+    sprout: {
+      part1: "这句话之所以值得停下来，是因为它在繁杂的竞品参数对比中，一针见血地指出了破局的核心不在于跟随内卷，而在于重新锚定真正属于自己的用户基本盘。",
+      part2: "这句话背后，你真正碰到的问题是如何在高度同质化的红海市场中寻找差异化生态位。当行业都在用“男性、参数、内卷”作为竞争维度的标尺时，你敏锐地意识到“女性用户”和“动态画像”才是跳出这套评价体系的杠杆。这就像任天堂在主机战争中放弃与索尼、微软死磕硬件性能，转而通过 Wii 和 Switch 抓住“合家欢”与“轻度玩家”的画像，从而开辟了全新的蓝海。这说明，商业竞争的终局往往不是在对手的规则里赢过对手，而是定义出只有自己能服务好的那群人。",
+      part3: "原来你当时写下的，不只是一个关于性别的用户属性标签，而是一个关于“不战而屈人之兵”的战略转向点。它最珍贵的地方在于提醒我们：与其在别人的赛道里拼刺刀，不如在自己的画像里建城池。",
+      part4: ["如何进一步细化高端女性用户的画像？", "除了设计风格，还有哪些触点可以打动女性用户？"]
+    }
   },
   {
     text: "如何做到 软硬结合 🤝 的体验，使得一加一大于2，是很好的切入点。",
     source: "FInd 的人群系统思考：高端全景与软硬结合",
     date: "2026.03.25",
     highlightedWords: ["软硬结合", "切入点"],
-    highlightColor: "text-blue-600"
+    highlightColor: "text-blue-600",
+    sprout: {
+      part1: "这句话之所以值得停下来，是因为它打破了硬件堆料和软件迭代各自为战的孤岛思维，直指高端体验的灵魂。",
+      part2: "这句话背后，你真正碰到的是“堆砌参数”与“交付体验”之间的鸿沟。在手机行业，顶级的屏幕或芯片只是基础，真正的壁垒在于软件如何调度这些硬件。就像苹果的 Taptic Engine，单看马达硬件并无神奇之处，但结合 iOS 细腻的震动反馈算法，就创造出了无可替代的触觉体验。这说明，高端产品的护城河从来不是买得来的供应链技术，而是深埋在软硬协同中的隐性知识。",
+      part3: "原来你当时写下的，不仅是一个产品切入点，更是对“什么是真正的高端”的深刻反思。它最珍贵的地方在于，提醒我们不要做硬件的搬运工，要做体验的调音师。",
+      part4: ["目前我们在哪些功能上做到了软硬结合的极致？", "苹果的Taptic Engine给了我们什么启发？"]
+    }
   },
   {
     text: "口袋生产力 📱 是折叠上软件的长期演进赛道。",
     source: "折叠屏口袋生产力：长期演进赛道共识",
     date: "2026.03.25",
     highlightedWords: ["口袋生产力", "演进赛道"],
-    highlightColor: "text-emerald-600"
+    highlightColor: "text-emerald-600",
+    sprout: {
+      part1: "这句话之所以脱颖而出，是因为它用极简的五个字“口袋生产力”，精准定义了折叠屏手机有别于直板机和Pad的独特存在价值。",
+      part2: "这句话背后，你真正碰到的是新形态硬件如何寻找其核心应用场景的难题。折叠屏如果只是“变大的屏幕”，那它永远只是个昂贵的玩具。但当你把它定义为“口袋里的生产力”时，软件演进的方向就瞬间清晰了：分屏多任务、悬停输入、跨应用拖拽。这就像 iPad Pro 提出“你的下一台电脑何必是电脑”一样，是通过重新定义场景来倒逼软件生态的进化。这说明，硬件形态的创新必须伴随软件灵魂的注入，否则就是无本之木。",
+      part3: "原来你当时写下的，不仅是对折叠屏软件方向的规划，更是为这个品类找到了安身立命的根本。它最珍贵的地方在于，用一个清晰的赛道，终结了关于折叠屏“到底有什么用”的迷茫。",
+      part4: ["折叠屏的'口袋生产力'还能延展出哪些具体场景？", "分屏多任务目前的体验瓶颈在哪里？"]
+    }
   },
   {
-    text: "表达功能并 升华功能 ✨，把拍照感觉显得专业和大气。",
+    text: "定义的问题是产品端解决，实现打磨端是研发要解决的问题。 🛠️",
     source: "直板机5大赛道梳理：影像、屏幕、系统、性能、外观",
     date: "2026.03.25",
-    highlightedWords: ["升华功能", "专业"],
-    highlightColor: "text-purple-600"
+    highlightedWords: ["定义", "实现"],
+    highlightColor: "text-amber-600",
+    sprout: {
+      part1: "这句话之所以值得停下来，是因为它在复杂的跨部门协作中，划定了一条极其清晰的责任与边界底线。",
+      part2: "这句话背后，你真正碰到的是组织内耗与推诿扯皮的顽疾。很多时候，产品做不好，是因为产品经理在操心技术怎么实现，而研发在质疑这个需求有没有用。这句话就像一把快刀，斩断了这种纠缠：产品负责“做正确的事”（定义），研发负责“把事做正确”（实现）。这让人联想到亚马逊的“逆向工作法”，产品经理必须先写好新闻稿（定义好价值），研发才开始写代码。这说明，高效的组织不是没有冲突，而是冲突在清晰的边界内发生。",
+      part3: "原来你当时写下的，不只是一个工作流程的划分，而是一份关于组织效率的契约。它最珍贵的地方在于，用最朴素的语言，道出了“各司其职”才是最高级的协同。",
+      part4: ["如何建立更高效的产品与研发沟通机制？", "在实际项目中，'定义'和'实现'的边界容易在哪里模糊？"]
+    }
   },
   {
-    text: "建立折叠 DXO 📏 的衡量标准，并不断斟酌量化指标。",
-    source: "折叠屏体验衡量标准与DXO",
+    text: "我理解 真伪需求 💡，是有多少用户愿意花超过这些成本的价格获得这样的产品。",
+    source: "FInd 的人群系统思考：高端全景与软硬结合",
     date: "2026.03.25",
-    highlightedWords: ["DXO", "量化指标"],
-    highlightColor: "text-orange-600"
+    highlightedWords: ["真伪需求", "成本"],
+    highlightColor: "text-indigo-600",
+    sprout: {
+      part1: "这句话之所以脱颖而出，是因为它用极其冷峻的商业常识，刺破了产品设计中容易陷入的“自我感动式创新”幻觉。",
+      part2: "这句话背后，你真正碰到的是“功能价值”与“商业价值”的错位困境。在讨论防窥模式等技术时，我们很容易陷入“功能有没有用”的陷阱，却忽略了“用户愿不愿意为之买单”的残酷现实。这让人联想到早期的模块化手机（如 Project Ara），虽然在极客眼中是完美的“真需求”，但因为高昂的成本和妥协的体验，最终在真实市场中被证明是“伪需求”。这个案例揭示了一个残酷的规律：脱离了支付意愿和成本结构的“痛点”，往往只是产品经理的一厢情愿。",
+      part3: "原来你当时写下的，不仅是一个判断真伪需求的标尺，更是一把悬在所有新功能头顶的达摩克利斯之剑。它最珍贵的地方在于，把感性的“用户喜欢”，转化为了理性的“成本与溢价”的博弈。",
+      part4: ["如何用最低成本验证一个需求是真需求还是伪需求？", "有哪些曾经被认为是真需求，最后却失败的案例？"]
+    }
   },
   {
-    text: "软件功能 💻 需要放大硬件的价值，硬件是用户买单的核心点。",
+    text: "软件功能需要 放大硬件的价值 💎。",
     source: "白天鹅重点突破与悬停模式思考",
     date: "2026.03.26",
-    highlightedWords: ["软件功能", "硬件价值"],
-    highlightColor: "text-indigo-600"
+    highlightedWords: ["放大", "硬件的价值"],
+    highlightColor: "text-cyan-600",
+    sprout: {
+      part1: "这句话之所以值得停下来，是因为它揭示了软件在智能设备时代的角色转变：从单纯的“可用”，进化为硬件价值的“放大器”。",
+      part2: "这句话背后，你真正碰到的是如何让昂贵的硬件创新被用户感知到的挑战。比如折叠屏的铰链成本极高，如果软件不支持悬停观影、悬停拍照，那铰链的价值就只停留在“能折叠”上。这就好比买了一辆跑车，却没有修一条能让它跑起来的高速公路。软件的“放大”作用，就是把冰冷的硬件参数，翻译成用户能切身体会到的“爽点”。这说明，优秀的软件设计，本质上是对硬件资产的深度变现。",
+      part3: "原来你当时写下的，不仅是对软件团队的期许，更是对软硬结合战略的最高级诠释。它最珍贵的地方在于，把软件从“配角”提升到了“价值放大器”的核心地位。",
+      part4: ["软件还能如何放大折叠屏铰链的价值？", "我们目前的软件功能中，有哪些没有充分发挥硬件潜力？"]
+    }
   },
   {
-    text: "科技与 艺术 🎨 结合，就有人性化和温暖的东西。",
+    text: "硬工软工是蒙着眼睛走路，产品线是睁着眼睛走。 👀",
     source: "折叠first打透：引领者与商业价值",
     date: "2026.03.26",
-    highlightedWords: ["艺术", "人性化"],
-    highlightColor: "text-pink-600"
+    highlightedWords: ["蒙着眼睛", "睁着眼睛"],
+    highlightColor: "text-violet-600",
+    sprout: {
+      part1: "它不是原文里最热闹的一句，而是用一个极具张力的隐喻，最能代表你对跨部门协作困境产生深刻洞察的一句。",
+      part2: "这句话背后，你真正碰到的是技术实现与商业愿景之间的信息差问题。硬工软工往往受限于具体的参数指标和技术边界（蒙眼），而产品线则需要紧盯市场趋势和用户最终体验（睁眼）。这就像是在建造大教堂，石匠们只看到眼前的石头是否平整，而建筑师必须看到整座教堂如何迎接晨光。这个比喻揭示了一个普遍的组织困境：当执行层缺乏全局视野时，再完美的局部技术突破，也可能拼凑出一个偏离用户需求的产品。",
+      part3: "原来你当时写下的，不只是对部门分工的一句吐槽，而是触碰到了组织协同中“对齐愿景”的核心痛点。它最珍贵的地方在于，提醒我们必须找到一种机制，让“蒙眼”的人也能感受到前方的光。",
+      part4: ["如何让研发团队也能'睁着眼睛'看到商业愿景？", "产品线在传递市场趋势时，最容易丢失哪些信息？"]
+    }
   },
   {
-    text: "高端女性 👗 的抓取弱的问题，女性用户多了就有规模效应。",
+    text: "如果我们人群没有定义清楚，我们最终卖多少量，就变成了一个听天由命的感觉了。 🎲",
     source: "寻找感性人群与高端女性用户抓取",
     date: "2026.03.26",
-    highlightedWords: ["高端女性", "规模效应"],
-    highlightColor: "text-violet-600"
+    highlightedWords: ["人群", "听天由命"],
+    highlightColor: "text-fuchsia-600",
+    sprout: {
+      part1: "这句话之所以值得停下来，是因为它用一种近乎残酷的直白，点破了盲目铺量背后的战略虚无主义。",
+      part2: "这句话背后，你真正碰到的是“以产品为中心”向“以用户为中心”转型的阵痛。过去，只要产品参数好就能卖出去；现在，如果不知道产品是卖给谁的，所有的营销和渠道动作都会变形。这就像是在没有靶子的射击场里开枪，打中多少全凭运气。宝洁公司之所以能长盛不衰，就是因为他们对每一个细分人群（甚至细化到某一种发质的女性）都有极其精准的定义。这说明，清晰的人群定义，是企业对抗市场不确定性的唯一锚点。",
+      part3: "原来你当时写下的，不仅是对销量的焦虑，更是对“战略失焦”的深刻警醒。它最珍贵的地方在于，把虚无缥缈的“运气”，拉回到了可控的“人群定义”这个基本功上。",
+      part4: ["如何验证我们当前的人群定义是否准确？", "如果人群定义发生偏移，我们应该如何快速纠偏？"]
+    }
   },
   {
-    text: "大的方向讲 智慧生活 🏠，互联互通原来是个主线。",
+    text: "互联互通 🔗 原来是个主线，现在是支撑各种场景的能力，必须有 场景化 🧩 的思考。",
     source: "智慧生活与泛在服务架构思考",
     date: "2026.03.26",
-    highlightedWords: ["智慧生活", "互联互通"],
-    highlightColor: "text-cyan-600"
+    highlightedWords: ["互联互通", "场景化"],
+    highlightColor: "text-teal-600",
+    sprout: {
+      part1: "这句话之所以值得停下来，是因为它标志着对 IoT（物联网）认知的关键跃迁：从“为了连接而连接”的技术自嗨，走向了“为了解决问题而连接”的场景落地。",
+      part2: "这句话背后，你真正碰到的是技术红利期结束后，如何让用户持续买单的难题。早期的互联互通，只要能把手机和电视连起来就是卖点（主线）；但现在，用户不再为“能连接”买单，他们只为“连接后能干什么”买单（场景）。比如，手机靠近电脑自动流转文件，这不是连接技术本身多牛，而是“跨屏办公”这个场景切中了痛点。这说明，技术从来不是目的，技术在特定场景下创造的体验才是目的。",
+      part3: "原来你当时写下的，不仅是对技术路线的修正，更是对产品价值观的重塑。它最珍贵的地方在于，把高高在上的“互联互通”，拉回到了柴米油盐的“具体场景”中。",
+      part4: ["目前互联互通最缺乏的'杀手级'场景是什么？", "如何从用户的日常痛点出发，反推互联互通的需求？"]
+    }
   },
   {
-    text: "在苹果没有 KPI 🚫，只看 results-innovation。",
+    text: "我们的文化不鼓励承担，反而干不好会罚绩效分，不犯错，怎么创新。 🚀",
     source: "苹果文化与OPPO文化的对比与反思",
     date: "2026.03.26",
-    highlightedWords: ["KPI", "innovation"],
-    highlightColor: "text-amber-600"
+    highlightedWords: ["不鼓励承担", "怎么创新"],
+    highlightColor: "text-red-600",
+    sprout: {
+      part1: "这句话之所以值得停下来，是因为它像一根刺，直接扎破了表面繁荣下的组织文化隐患，直指创新停滞的根源。",
+      part2: "这句话背后，你真正碰到的是“KPI导向”与“创新容错率”之间的结构性矛盾。当一个组织的考核机制只惩罚失败，不奖励冒险时，最理性的生存策略就是“不做不错”。这让人联想到硅谷常说的“Fail Fast, Fail Cheap”（快速失败，廉价失败）。如果连犯错的空间都被绩效考核锁死，那所谓的创新就只能是微调和修补，绝不可能出现颠覆性的跨越。这说明，真正的创新不是口号喊出来的，而是用包容失败的制度土壤培育出来的。",
+      part3: "原来你当时写下的，不仅是对考核制度的抱怨，更是对组织生命力枯竭的深深忧虑。它最珍贵的地方在于，勇敢地揭示了：没有犯错的特权，就没有创新的可能。",
+      part4: ["如何在团队内部建立'安全失败'的机制？", "KPI导向和创新容错之间，如何找到平衡点？"]
+    }
   },
   {
-    text: "手环 ⌚️ 追求简单准确有效，也许能替代特定人群的喜好。",
+    text: "一秒钟的用户操作成本都是成本。 ⏱️",
     source: "OPPO手环使用初体验与产品思考",
     date: "2026.03.26",
-    highlightedWords: ["手环", "简单准确"],
-    highlightColor: "text-teal-600"
+    highlightedWords: ["操作成本"],
+    highlightColor: "text-orange-600",
+    sprout: {
+      part1: "这句话之所以值得停下来，是因为它把对用户体验的苛求，量化到了“秒”这个极其微观的颗粒度上。",
+      part2: "这句话背后，你真正碰到的是在碎片化时代，用户注意力和耐心的极度稀缺。在设计手环等轻量级设备时，多点一次屏幕、多等一秒钟同步，都可能成为用户放弃使用的最后一根稻草。这让人联想到亚马逊著名的“100毫秒延迟法则”（页面加载每慢100毫秒，销售额下降1%）。在体验设计中，时间不仅是金钱，更是用户的信任和留存。这说明，极致的体验往往隐藏在那些看似微不足道的“一秒钟”里。",
+      part3: "原来你当时写下的，不仅是对一个具体交互细节的挑剔，更是确立了一种近乎偏执的产品信仰。它最珍贵的地方在于，把“以用户为中心”这句空话，变成了一把可以精确测量的尺子。",
+      part4: ["我们目前的产品中，哪里还存在'一秒钟'的冗余操作？", "如何量化并持续降低用户的操作成本？"]
+    }
   }
 ];
 
@@ -276,7 +345,7 @@ export default function App() {
     highlightColor?: string;
     isGenerating: boolean;
   }>({
-    text: "习惯记录 📝\n期待每一次自我重逢",
+    text: "习惯记录✍🏻\n期待每一次自我重逢",
     highlightColor: "text-gray-900",
     isGenerating: false
   });
@@ -285,9 +354,7 @@ export default function App() {
 
   // Typing Animation State
   const [displayText, setDisplayText] = useState(quoteState.text);
-  const [displaySource, setDisplaySource] = useState(quoteState.source || "档案馆正在准备中...");
-  const [displayDate, setDisplayDate] = useState(quoteState.date ? `记录于 ${quoteState.date}` : "请持续记录吧");
-  const [isMetadataVisible, setIsMetadataVisible] = useState(true);
+  const [displaySubtext, setDisplaySubtext] = useState("档案馆正在准备中，请持续记录...");
   const [hasExitedDefault, setHasExitedDefault] = useState(false);
   const [displayMetadata, setDisplayMetadata] = useState({
     source: quoteState.source,
@@ -298,31 +365,24 @@ export default function App() {
 
   useEffect(() => {
     const targetText = quoteState.text;
-    const targetSource = quoteState.source || "档案馆正在准备中...";
-    const targetDate = quoteState.date ? `记录于 ${quoteState.date}` : "请持续记录吧";
+    const targetSubtext = quoteState.source 
+      ? `记录于 ${quoteState.date}\n${quoteState.source}`
+      : "档案馆正在准备中，请持续记录...";
 
     // Speed up
     const deleteSpeed = 8;
     const typeSpeed = 15;
 
     const timer = setTimeout(() => {
-      // 1. Deleting Date
-      if (displayDate.length > 0 && (targetText !== displayText || targetSource !== displaySource || targetDate !== displayDate)) {
-        if (!targetDate.startsWith(displayDate) || targetText !== displayText || targetSource !== displaySource) {
-          setDisplayDate(prev => prev.slice(0, -1));
-          return;
-        }
-      }
-      
-      // 2. Deleting Source
-      if (displaySource.length > 0 && (targetText !== displayText || targetSource !== displaySource)) {
-        if (!targetSource.startsWith(displaySource) || targetText !== displayText) {
-          setDisplaySource(prev => prev.slice(0, -1));
+      // 1. Deleting Subtext
+      if (displaySubtext.length > 0 && (targetText !== displayText || targetSubtext !== displaySubtext)) {
+        if (!targetSubtext.startsWith(displaySubtext) || targetText !== displayText) {
+          setDisplaySubtext(prev => prev.slice(0, -1));
           return;
         }
       }
 
-      // 3. Deleting Text
+      // 2. Deleting Text
       if (displayText.length > 0 && targetText !== displayText) {
         if (!targetText.startsWith(displayText)) {
           setDisplayText(prev => prev.slice(0, -1));
@@ -330,7 +390,7 @@ export default function App() {
         }
       }
 
-      // 4. Typing Text
+      // 3. Typing Text
       if (displayText.length < targetText.length) {
         if (displayText === "") {
           // Update metadata exactly when we start typing the new one
@@ -347,26 +407,19 @@ export default function App() {
         return;
       }
 
-      // 5. Typing Source
-      if (displaySource.length < targetSource.length) {
-        setDisplaySource(targetSource.slice(0, displaySource.length + 1));
+      // 4. Typing Subtext
+      if (displaySubtext.length < targetSubtext.length) {
+        setDisplaySubtext(targetSubtext.slice(0, displaySubtext.length + 1));
         return;
       }
 
-      // 6. Typing Date
-      if (displayDate.length < targetDate.length) {
-        setDisplayDate(targetDate.slice(0, displayDate.length + 1));
-        return;
-      }
-
-    }, (targetText !== displayText || targetSource !== displaySource || targetDate !== displayDate) ? deleteSpeed : typeSpeed);
+    }, (targetText !== displayText || targetSubtext !== displaySubtext) ? deleteSpeed : typeSpeed);
 
     return () => clearTimeout(timer);
-  }, [quoteState.text, quoteState.source, quoteState.date, displayText, displaySource, displayDate]);
+  }, [quoteState.text, quoteState.source, quoteState.date, displayText, displaySubtext]);
 
   const isTypingFinished = displayText === quoteState.text && 
-    displaySource === (quoteState.source || "档案馆正在准备中...") && 
-    displayDate === (quoteState.date ? `记录于 ${quoteState.date}` : "请持续记录吧");
+    displaySubtext === (quoteState.source ? `记录于 ${quoteState.date}\n${quoteState.source}` : "档案馆正在准备中，请持续记录...");
 
   const isGeneratingRef = useRef(false);
   const quoteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -531,9 +584,10 @@ export default function App() {
   };
 
   const getQuoteFontSize = (text: string) => {
-    if (text.length < 15) return 'text-[18px]';
-    if (text.length < 30) return 'text-[16px]';
-    return 'text-[14px]';
+    if (text.length <= 20) return 'text-[24px]';
+    if (text.length <= 35) return 'text-[20px]';
+    if (text.length <= 50) return 'text-[18px]';
+    return 'text-[16px]';
   };
 
   const renderHighlightedText = (text: string, highlightedWords: string[] = []) => {
@@ -566,7 +620,7 @@ export default function App() {
   
   // Navigation State
   const [activeTab, setActiveTab] = useState<'notes' | 'notebooks'>('notes');
-  const [currentScreen, setCurrentScreen] = useState<'home' | 'editor' | 'notebook_detail' | 'chat' | 'archive'>('home');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [chatMode, setChatMode] = useState<'default' | 'excerpt'>('default');
   const [chatExcerpt, setChatExcerpt] = useState<any>(null);
   const [chatInput, setChatInput] = useState('');
@@ -602,6 +656,12 @@ export default function App() {
   
   // Analysis & Generation State
   const [analysisProgress, setAnalysisProgress] = useState(0);
+
+  // Poster State
+  const [posterTheme, setPosterTheme] = useState<'light' | 'dark'>('light');
+  const [posterRatio, setPosterRatio] = useState<'1:1' | '3:4' | 'auto'>('auto');
+  const [posterPageIndex, setPosterPageIndex] = useState(0);
+  const posterRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [analysisTarget, setAnalysisTarget] = useState<any>(null);
   
   const [noteForTagEditorId, setNoteForTagEditorId] = useState<string | null>(null);
@@ -612,6 +672,17 @@ export default function App() {
   const isLongPressRef = useRef(false);
 
   const archiveContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (currentScreen === 'archive' && archiveContainerRef.current) {
+      // Use setTimeout to ensure DOM is fully rendered before scrolling
+      setTimeout(() => {
+        if (archiveContainerRef.current) {
+          archiveContainerRef.current.scrollLeft = archiveIndex * archiveContainerRef.current.clientWidth;
+        }
+      }, 10);
+    }
+  }, [currentScreen]);
 
   const handlePressStart = () => {
     isLongPressRef.current = false;
@@ -1182,9 +1253,9 @@ export default function App() {
 
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
       const container = e.currentTarget;
-      const scrollY = container.scrollTop;
-      const itemHeight = 400; // Fixed height for calculation
-      const newIndex = Math.round(scrollY / itemHeight);
+      const scrollX = container.scrollLeft;
+      const itemWidth = container.clientWidth; // Use actual container width
+      const newIndex = Math.round(scrollX / itemWidth);
       if (newIndex !== archiveIndex && newIndex >= 0 && newIndex < totalExcerpts) {
         setArchiveIndex(newIndex);
       }
@@ -1193,165 +1264,122 @@ export default function App() {
     const currentExcerpt = PRE_GENERATED_EXCERPTS[archiveIndex];
 
     return (
-      <div className="flex-1 flex flex-col relative overflow-hidden bg-[#0a0a0a]">
-        {/* Immersive Background */}
-        <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=2070&auto=format&fit=crop" 
-            className="w-full h-full object-cover opacity-30 mix-blend-overlay"
-            alt="Background"
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/40 to-black/95" />
-        </div>
-
+      <div className="flex-1 flex flex-col relative overflow-hidden bg-[#fcfcfc]">
         {/* Header (Fixed) */}
-        <div className="relative z-30 px-6 pt-12 pb-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-[28px] font-bold text-white tracking-tight">摘录档案馆</h1>
-            <p className="text-[14px] text-white/40 font-medium tracking-wide">今日，与这些记录重逢</p>
+        <div className="absolute top-0 left-0 right-0 z-30 px-6 pt-12 pb-4 flex items-center justify-between bg-[#fcfcfc]/90 backdrop-blur-sm border-b border-black/10">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 bg-black rounded-full" />
+            <span className="text-[12px] font-bold tracking-[0.2em] uppercase text-black">Archive</span>
           </div>
           <button 
             onClick={() => setCurrentScreen('home')}
-            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:scale-90 transition-transform"
+            className="w-8 h-8 flex items-center justify-center text-black active:scale-90 transition-transform"
           >
-            <X size={20} />
+            <X size={24} strokeWidth={1.5} />
           </button>
         </div>
 
-        {/* Vertical Scrollable List (Lyrics Style) */}
+        {/* Horizontal Scrollable List (One screen per item) */}
         <div 
           ref={archiveContainerRef}
           onScroll={handleScroll}
-          className="relative z-10 flex-1 overflow-y-auto snap-y snap-mandatory no-scrollbar scroll-smooth"
+          className="relative z-10 flex-1 flex overflow-x-auto snap-x snap-mandatory no-scrollbar"
         >
-          {/* Top Spacer to center the first item */}
-          <div className="h-[calc(50vh-200px-80px)]" /> 
-
           {PRE_GENERATED_EXCERPTS.map((excerpt, index) => {
-            const isActive = index === archiveIndex;
+            const sprout = excerpt.sprout;
+            if (!sprout) return null;
             
             return (
               <div 
                 key={index}
-                className="snap-center h-[400px] flex flex-col items-center justify-center px-8 transition-all duration-500"
+                className="snap-start h-full w-full flex-shrink-0 flex flex-col overflow-y-auto no-scrollbar pt-24 pb-32 px-6"
               >
-                <div className={`w-full text-center transition-all duration-500 ${isActive ? 'opacity-100 scale-105' : 'opacity-20 scale-90 blur-[1px]'}`}>
-                  <div className="relative inline-block">
-                    {isActive && (
-                      <svg className="absolute -top-10 -left-6 text-white/10 w-20 h-20 -z-10" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
-                      </svg>
-                    )}
-                    <h2 className={`font-bold leading-[1.6] tracking-tight ${isActive ? 'text-white text-[24px]' : 'text-white/60 text-[18px]'}`}>
-                      {renderHighlightedText(excerpt.text, excerpt.highlightedWords)}
-                    </h2>
+                <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full min-h-min">
+                  
+                  {/* Top Decorative Line & Index */}
+                  <div className="flex items-center gap-4 mb-2 mt-auto">
+                    <div className="h-[1px] flex-1 bg-black" />
+                    <span className="font-serif text-3xl font-light italic text-black/30">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
                   </div>
 
-                  {/* Source Card (Only for active, inside the scroll item) */}
-                  <AnimatePresence>
-                    {isActive && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        className="mt-8 flex justify-center"
-                      >
-                        <button 
-                          onClick={() => handleGoToNote(excerpt.source)}
-                          className="w-full max-w-[280px] p-5 rounded-3xl bg-white/5 backdrop-blur-md border border-white/10 flex flex-col gap-1 relative group active:scale-95 transition-transform text-left"
-                        >
-                          <div className="flex items-center justify-between text-white/60 group-hover:text-white transition-colors">
-                            <span className="text-[13px] font-medium tracking-wide truncate pr-4">—— 《{excerpt.source}》</span>
-                            <ExternalLink size={14} className="shrink-0" />
-                          </div>
-                          <span className="text-[11px] text-white/30">记于 {excerpt.date}</span>
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {/* Source Link */}
+                  <button onClick={() => handleGoToNote(excerpt.source)} className="flex items-center gap-1.5 text-black/40 hover:text-black transition-colors mb-6 text-[13px] font-medium w-fit">
+                    <FileText size={14} />
+                    <span className="underline underline-offset-2">来自：{excerpt.source}</span>
+                  </button>
+
+                  {/* Excerpt (The Tension Title) */}
+                  <h2 className="font-serif font-black text-[22px] leading-[1.4] tracking-tight text-black mb-6">
+                    {renderHighlightedText(excerpt.text, excerpt.highlightedWords)}
+                  </h2>
+
+                  {/* Part 1: Why */}
+                  <p className="font-sans font-bold text-[14px] leading-relaxed text-black mb-6 border-l-2 border-black pl-4">
+                    {sprout.part1}
+                  </p>
+
+                  {/* Part 2: Explanation (Drop Cap) */}
+                  <div className="font-serif text-[15px] leading-[1.8] text-gray-800 mb-8 text-justify
+                    first-letter:text-5xl first-letter:font-black first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none">
+                    {sprout.part2}
+                  </div>
+
+                  {/* Part 3: Aha Moment */}
+                  <div className="mb-auto">
+                    <div className="border-t border-b border-black/10 py-4">
+                      <p className="font-serif font-medium italic text-[14px] leading-relaxed text-black text-center">
+                        "{sprout.part3}"
+                      </p>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             );
           })}
-
-          {/* Bottom Spacer to center the last item */}
-          <div className="h-[calc(50vh-200px-120px)]" />
         </div>
 
         {/* Global Actions (Fixed at bottom) */}
-        <div className="relative z-30 px-6 pt-4 pb-6 bg-gradient-to-t from-black via-black/80 to-transparent">
-          <div className="flex items-center justify-between w-full max-w-[340px] mx-auto mb-8">
+        <div className="absolute bottom-0 left-0 right-0 z-30 px-6 pt-4 pb-8 bg-gradient-to-t from-[#fcfcfc] via-[#fcfcfc]/90 to-transparent pointer-events-none">
+          <div className="flex items-center justify-between w-full max-w-[340px] mx-auto pointer-events-auto">
             <div className="flex gap-3">
               <button 
                 onClick={() => handleCopy(currentExcerpt.text)}
-                className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 active:scale-90 transition-all hover:bg-white/20"
+                className="w-12 h-12 rounded-full border border-black flex items-center justify-center text-black active:scale-90 transition-all hover:bg-black/5 bg-[#fcfcfc]"
               >
-                {isCopied ? <Check size={20} className="text-emerald-400" /> : <Copy size={20} />}
+                {isCopied ? <Check size={20} className="text-emerald-600" /> : <Copy size={20} />}
               </button>
-              <button className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 active:scale-90 transition-all hover:bg-white/20">
+              <button 
+                onClick={() => setCurrentScreen('poster')}
+                className="w-12 h-12 rounded-full border border-black flex items-center justify-center text-black active:scale-90 transition-all hover:bg-black/5 bg-[#fcfcfc]"
+              >
                 <Download size={20} />
               </button>
             </div>
 
             <button 
               onClick={() => {
+                const fullText = `【摘录】\n${currentExcerpt.text}\n\n【破题】\n${currentExcerpt.sprout.part1}\n\n【延展】\n${currentExcerpt.sprout.part2}\n\n【啊哈时刻】\n${currentExcerpt.sprout.part3}`;
+                setChatInput(fullText);
                 setChatMode('excerpt');
                 setChatExcerpt(currentExcerpt);
                 setIsReferenceVisible(true);
                 setCurrentScreen('chat');
               }}
-              className="flex items-center gap-2 px-6 py-3 rounded-full bg-white text-gray-900 shadow-xl active:scale-95 transition-all hover:bg-gray-100"
+              className="flex items-center gap-2 px-6 py-3 rounded-full bg-black text-white shadow-xl active:scale-95 transition-all hover:bg-gray-900"
             >
               <div className="w-5 h-5 flex items-center justify-center shrink-0">
                 <img 
                   src="https://cdn.phototourl.com/free/2026-03-31-e4ab4c41-3964-4aab-9823-89ce63e016c4.png" 
-                  className="w-full h-full object-contain" 
+                  className="w-full h-full object-contain brightness-0 invert" 
                   alt="AI"
                   referrerPolicy="no-referrer"
                 />
               </div>
               <span className="text-[14px] font-bold">回顾</span>
             </button>
-          </div>
-
-          {/* Pagination Info */}
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex items-center gap-6">
-              <button 
-                onClick={() => {
-                  if (archiveContainerRef.current) {
-                    const newIndex = Math.max(0, archiveIndex - 1);
-                    archiveContainerRef.current.scrollTo({ top: newIndex * 400, behavior: 'smooth' });
-                  }
-                }}
-                className="text-white/30 hover:text-white transition-colors p-1"
-              >
-                <ChevronsLeft size={24} className="rotate-90" />
-              </button>
-              <span className="text-[16px] font-bold text-white tracking-widest min-w-[60px] text-center">
-                {archiveIndex + 1} <span className="text-white/30 font-medium mx-1">/</span> {totalExcerpts}
-              </span>
-              <button 
-                onClick={() => {
-                  if (archiveContainerRef.current) {
-                    const newIndex = Math.min(totalExcerpts - 1, archiveIndex + 1);
-                    archiveContainerRef.current.scrollTo({ top: newIndex * 400, behavior: 'smooth' });
-                  }
-                }}
-                className="text-white/30 hover:text-white transition-colors p-1"
-              >
-                <ChevronsRight size={24} className="rotate-90" />
-              </button>
-            </div>
-            <div className="flex gap-1.5">
-              {Array.from({ length: totalExcerpts }).map((_, i) => (
-                <div 
-                  key={i} 
-                  className={`h-1 rounded-full transition-all duration-300 ${i === archiveIndex ? 'w-4 bg-white' : 'w-1 bg-white/20'}`}
-                />
-              ))}
-            </div>
           </div>
         </div>
       </div>
@@ -1374,59 +1402,65 @@ export default function App() {
         </div>
 
         {/* Chat Content */}
-        <div className="flex-1 overflow-y-auto px-6 pb-40 flex flex-col justify-end">
-          <AnimatePresence mode="wait">
-            {!isExcerpt ? (
-              <motion.div 
-                key="default-chat"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="pt-10 flex flex-col"
-              >
-                <div className="w-20 h-20 mb-6">
-                  <img 
-                    src="https://cdn.phototourl.com/free/2026-03-31-730a3037-1360-4f94-8f3f-00332291f68d.png" 
-                    className="w-full h-full object-contain"
-                    alt="Mascot"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
-                <h2 className="text-[24px] font-bold text-gray-900 mb-8">今日事，小布来帮</h2>
-                
-                <div className="flex flex-col gap-4">
-                  <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
-                    <span className="text-lg">🖊️</span>
-                    <span className="text-[15px]">生成 <span className="text-blue-500 font-medium">周报</span></span>
-                  </button>
-                  <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
-                    <span className="text-lg">💻</span>
-                    <span className="text-[15px]">如何自己搭建一个 <span className="text-orange-500 font-medium">Openclaw</span></span>
-                  </button>
-                  <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
-                    <span className="text-lg">🔍</span>
-                    <span className="text-[15px]">搜索任何内容</span>
-                  </button>
-                </div>
+        <div className="flex-1 overflow-y-auto px-6 pb-40">
+          <div className="min-h-full flex flex-col justify-end">
+            <AnimatePresence mode="wait">
+              {!isExcerpt ? (
+                <motion.div 
+                  key="default-chat"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="pt-10 flex flex-col"
+                >
+                  <div className="w-20 h-20 mb-6">
+                    <img 
+                      src="https://cdn.phototourl.com/free/2026-03-31-730a3037-1360-4f94-8f3f-00332291f68d.png" 
+                      className="w-full h-full object-contain"
+                      alt="Mascot"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  <h2 className="text-[24px] font-bold text-gray-900 mb-8">今日事，小布来帮</h2>
+                  
+                  <div className="flex flex-col gap-4">
+                    <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
+                      <span className="text-lg">🖊️</span>
+                      <span className="text-[15px]">生成 <span className="text-blue-500 font-medium">周报</span></span>
+                    </button>
+                    <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
+                      <span className="text-lg">💻</span>
+                      <span className="text-[15px]">如何自己搭建一个 <span className="text-orange-500 font-medium">Openclaw</span></span>
+                    </button>
+                    <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
+                      <span className="text-lg">🔍</span>
+                      <span className="text-[15px]">搜索任何内容</span>
+                    </button>
+                  </div>
 
-                <button className="mt-8 flex items-center gap-2 text-gray-400 text-[13px] hover:text-gray-600 transition-colors">
-                  <span>换一换</span>
-                  <RefreshCw size={14} />
-                </button>
-              </motion.div>
-            ) : (
-              <motion.div 
-                key="excerpt-chat"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="pt-10 flex flex-col"
-              >
+                  <button className="mt-8 flex items-center gap-2 text-gray-400 text-[13px] hover:text-gray-600 transition-colors">
+                    <span>换一换</span>
+                    <RefreshCw size={14} />
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key="excerpt-chat"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="pt-10 flex flex-col"
+                >
                 {/* AI Message Bubble */}
                 <div className="bg-gray-50/80 rounded-[24px] p-6 mb-8 shadow-sm border border-gray-100/50 max-w-[90%]">
                   <p className="text-[16px] text-gray-800 leading-relaxed mb-4 font-medium">
                     {chatExcerpt.text}
                   </p>
+                  <div className="flex flex-col gap-3 mb-6">
+                    <p className="text-[14px] text-gray-600 border-l-2 border-gray-300 pl-3 leading-relaxed">{chatExcerpt.sprout?.part1}</p>
+                    <p className="text-[14px] text-gray-600 border-l-2 border-gray-300 pl-3 leading-relaxed">{chatExcerpt.sprout?.part2}</p>
+                    <p className="text-[14px] text-gray-600 border-l-2 border-gray-300 pl-3 italic leading-relaxed">{chatExcerpt.sprout?.part3}</p>
+                  </div>
                   <div className="flex flex-col gap-1">
                     <p className="text-[12px] text-gray-400">—— 《{chatExcerpt.source}》</p>
                     <p className="text-[12px] text-gray-400">记于 {chatExcerpt.date}</p>
@@ -1435,18 +1469,16 @@ export default function App() {
 
                 {/* Recommended Prompts */}
                 <div className="flex flex-col gap-4">
-                  <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
-                    <span className="text-lg">🖊️</span>
-                    <span className="text-[15px]">回顾更多Tony所说的话</span>
-                  </button>
-                  <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
-                    <span className="text-lg">💻</span>
-                    <span className="text-[15px]">Tony在什么情况下说了这句话？</span>
-                  </button>
-                  <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
-                    <span className="text-lg">🔍</span>
-                    <span className="text-[15px]">我当时为什么记录了这个</span>
-                  </button>
+                  {chatExcerpt.sprout?.part4?.map((query: string, i: number) => (
+                    <button 
+                      key={i}
+                      onClick={() => setChatInput(query)}
+                      className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group text-left"
+                    >
+                      <span className="text-lg">✨</span>
+                      <span className="text-[15px]">{query}</span>
+                    </button>
+                  ))}
                 </div>
 
                 <button 
@@ -1462,6 +1494,7 @@ export default function App() {
               </motion.div>
             )}
           </AnimatePresence>
+          </div>
         </div>
 
         {/* Input Area */}
@@ -1600,103 +1633,52 @@ export default function App() {
                   </div>
                 </motion.div>
               )}
-              <div className="relative flex flex-row items-end gap-4 py-2 min-h-[140px]">
-                {/* Left Column: Text & Metadata */}
-                <div className="flex-1 self-stretch flex flex-col">
-                  <div 
-                    className="flex-1 flex flex-col justify-center cursor-pointer active:opacity-70 transition-opacity"
-                    onClick={() => {
-                      if (hasExitedDefault && quoteState.source) {
-                        const index = PRE_GENERATED_EXCERPTS.findIndex(e => e.text === quoteState.text);
-                        setArchiveIndex(index >= 0 ? index : 0);
-                        setCurrentScreen('archive');
-                      }
-                    }}
-                  >
-                    <h2 className={`font-bold text-gray-900 leading-[1.4] whitespace-pre-line ${getQuoteFontSize(quoteState.text)}`}>
-                      {renderHighlightedText(displayText, displayMetadata.source ? displayMetadata.highlightedWords : [])}
-                      {hasExitedDefault && displaySource && displaySource !== "档案馆正在准备中..." && (
-                        <span className="inline-flex ml-1 text-gray-300">
-                          <ChevronsRight size={16} />
-                        </span>
-                      )}
-                    </h2>
-                  </div>
-                  
-                  {/* Metadata (Always visible for structural stability) */}
-                  <div className="mt-auto space-y-0.5">
-                    <div className="pb-1">
-                      <p className="text-[11px] text-gray-400 leading-relaxed line-clamp-2 opacity-80">
-                        {hasExitedDefault && displaySource && displaySource !== "档案馆正在准备中..."
-                          ? `—— 《${displaySource}》` 
-                          : displaySource}
-                      </p>
-                      <p className="text-[11px] text-gray-300">
-                        {displayDate}
-                      </p>
-                    </div>
-                  </div>
+              <div className="relative flex flex-col gap-1 py-2 h-[220px]">
+                {/* Avatar */}
+                <div className="flex items-center mb-3">
+                  <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=transparent" alt="Avatar" className="w-8 h-8" />
                 </div>
 
-                {/* Right Column: Mascot & Chat Button (Always Fixed) */}
-                <div className="w-32 flex flex-col items-center justify-end shrink-0">
-                  {/* Mascot Container */}
-                  <motion.div 
-                    key="mascot"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="w-28 h-28 pointer-events-none mb-1"
-                  >
-                    <img 
-                      src="https://cdn.phototourl.com/free/2026-03-31-730a3037-1360-4f94-8f3f-00332291f68d.png" 
-                      className="w-full h-full object-contain"
-                      alt="Mascot"
-                      referrerPolicy="no-referrer"
-                    />
-                  </motion.div>
-
-                  {/* Chat Button (Liquid Glass Style) */}
-                  <motion.button
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    onClick={() => {
-                      if (quoteState.source) {
-                        setChatMode('excerpt');
-                        setChatExcerpt(quoteState);
-                        setIsReferenceVisible(true);
-                      } else {
-                        setChatMode('default');
-                        setChatExcerpt(null);
-                      }
-                      setCurrentScreen('chat');
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 backdrop-blur-xl border border-white/30 shadow-[0_4px_12px_rgba(0,0,0,0.03)] active:scale-95 transition-all group w-[96px] justify-center"
-                  >
-                    <div className="w-5 h-5 flex items-center justify-center shrink-0">
-                      <img 
-                        src="https://cdn.phototourl.com/free/2026-03-31-e4ab4c41-3964-4aab-9823-89ce63e016c4.png" 
-                        className="w-full h-full object-contain brightness-110" 
-                        alt="AI"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                    <div className="relative h-4 w-[42px] overflow-hidden flex items-center justify-center">
-                      <AnimatePresence mode="wait">
-                        <motion.span 
-                          key={hasExitedDefault && isTypingFinished ? 'review' : 'chat'}
-                          initial={{ opacity: 0, y: 12 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -12 }}
-                          transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-                          className="text-[12px] text-gray-500 font-bold tracking-tight whitespace-nowrap absolute"
-                        >
-                          {hasExitedDefault && isTypingFinished ? '回顾' : '聊一聊'}
-                        </motion.span>
-                      </AnimatePresence>
-                    </div>
-                  </motion.button>
+                {/* Text */}
+                <div 
+                  className="flex-1 flex flex-col justify-center cursor-pointer active:opacity-70 transition-opacity"
+                  onClick={() => {
+                    if (hasExitedDefault && quoteState.source) {
+                      const index = PRE_GENERATED_EXCERPTS.findIndex(e => e.text === quoteState.text);
+                      setArchiveIndex(index >= 0 ? index : 0);
+                      setCurrentScreen('archive');
+                    }
+                  }}
+                >
+                  <h2 className={`font-bold text-gray-900 leading-[1.7] whitespace-pre-wrap font-serif ${getQuoteFontSize(quoteState.text)}`}>
+                    <span 
+                      className="inline"
+                      style={{ 
+                        backgroundImage: 'linear-gradient(transparent 60%, rgba(229, 231, 235, 0.8) 60%)',
+                        WebkitBoxDecorationBreak: 'clone',
+                        boxDecorationBreak: 'clone'
+                      }}
+                    >
+                      {displayText}
+                    </span>
+                    {hasExitedDefault && isTypingFinished && (
+                      <svg width="28" height="24" viewBox="0 0 28 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="inline-block ml-2 align-middle drop-shadow-sm translate-y-[-2px]">
+                        <path d="M2 10C2 5.58172 5.58172 2 10 2H18C22.4183 2 26 5.58172 26 10C26 14.4183 22.4183 18 18 18H10.5L5.5 21.5V18C3.5 16.5 2 13.5 2 10Z" fill="white"/>
+                        <circle cx="10" cy="10" r="1.5" fill="#111827"/>
+                        <circle cx="14" cy="10" r="1.5" fill="#111827"/>
+                        <circle cx="18" cy="10" r="1.5" fill="#111827"/>
+                      </svg>
+                    )}
+                  </h2>
+                </div>
+                
+                {/* Metadata */}
+                <div className="mt-4">
+                  <div className="text-[12px] text-gray-500 font-medium flex flex-col gap-1">
+                    {displaySubtext.split('\n').map((line, i) => (
+                      <p key={i} className={i === 0 ? "text-gray-400" : "text-gray-500"}>{line}</p>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -2003,6 +1985,205 @@ export default function App() {
     );
   };
 
+  const renderPosterScreen = () => {
+    const currentExcerpt = PRE_GENERATED_EXCERPTS[archiveIndex];
+    if (!currentExcerpt || !currentExcerpt.sprout) return null;
+    
+    const isSquare = posterRatio === '1:1';
+    const isVertical = posterRatio === '3:4';
+    const isAuto = posterRatio === 'auto';
+
+    const handleSavePoster = async () => {
+      try {
+        const pagesToSave = isAuto ? [posterRefs.current[0]] : [posterRefs.current[0], posterRefs.current[1], posterRefs.current[2]];
+        
+        for (let i = 0; i < pagesToSave.length; i++) {
+          const ref = pagesToSave[i];
+          if (!ref) continue;
+          
+          const canvas = await html2canvas(ref, { 
+            scale: 3, 
+            useCORS: true, 
+            backgroundColor: posterTheme === 'dark' ? '#1a1a1a' : '#fcfcfc' 
+          });
+          const url = canvas.toDataURL('image/png');
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `excerpt-poster-${Date.now()}${isAuto ? '' : `-p${i + 1}`}.png`;
+          a.click();
+          
+          if (pagesToSave.length > 1) {
+            await new Promise(resolve => setTimeout(resolve, 500)); // Delay between downloads
+          }
+        }
+      } catch (err) {
+        console.error("Failed to save poster", err);
+      }
+    };
+
+    return (
+      <div className="flex flex-col h-full bg-gray-100 z-50 absolute inset-0">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shrink-0">
+          <button onClick={() => setCurrentScreen('archive')} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <ArrowLeft size={20} className="text-gray-700" />
+          </button>
+          <span className="font-medium text-gray-900">生成分享图</span>
+          <button onClick={handleSavePoster} className="px-4 py-1.5 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 transition-colors">
+            保存
+          </button>
+        </div>
+
+        {/* Preview Area */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden flex items-center justify-center p-4 sm:p-8 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+          {isAuto ? (
+            <div 
+              ref={(el) => posterRefs.current[0] = el}
+              className={`relative shrink-0 flex flex-col overflow-hidden transition-all duration-300 ${posterTheme === 'dark' ? 'bg-[#1a1a1a] text-white' : 'bg-[#fcfcfc] text-black'} h-fit`}
+              style={{ width: '100%', maxWidth: '375px' }}
+            >
+              {/* Poster Content for Auto */}
+              <div className="flex flex-col h-full px-8 py-10">
+                {/* Header Info */}
+                <div className={`flex justify-between items-center mb-8 text-[12px] font-medium tracking-wider ${posterTheme === 'dark' ? 'text-white/50' : 'text-black/40'}`}>
+                  <span>记录人：User</span>
+                  <span>记录于 {currentExcerpt.date}</span>
+                </div>
+
+                {/* Excerpt */}
+                <h2 className="font-serif font-black leading-[1.4] tracking-tight text-[24px] mb-8">
+                  {renderHighlightedText(currentExcerpt.text, currentExcerpt.highlightedWords)}
+                </h2>
+
+                {/* Sprout Content */}
+                <div className="flex-1 flex flex-col justify-center min-h-0">
+                  <p className={`font-sans font-bold leading-relaxed border-l-2 pl-3 text-[14px] mb-6 ${posterTheme === 'dark' ? 'border-white text-white/90' : 'border-black text-black/90'}`}>
+                    {currentExcerpt.sprout.part1}
+                  </p>
+                  <div className={`font-serif text-justify text-[15px] leading-[1.8] mb-8 ${posterTheme === 'dark' ? 'text-white/80' : 'text-gray-800'} first-letter:text-3xl first-letter:font-black first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:leading-none`}>
+                    {currentExcerpt.sprout.part2}
+                  </div>
+                </div>
+
+                {/* Aha Moment */}
+                <div className={`mt-auto border-t border-b py-4 ${posterTheme === 'dark' ? 'border-white/10' : 'border-black/10'}`}>
+                  <p className="font-serif font-medium italic leading-relaxed text-center text-[14px]">
+                    "{currentExcerpt.sprout.part3}"
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide items-center" style={{ scrollbarWidth: 'none' }}>
+              {/* Page 1: Excerpt */}
+              <div className="min-w-full flex items-center justify-center snap-center p-4">
+                <div 
+                  ref={(el) => posterRefs.current[0] = el}
+                  className={`relative shrink-0 flex flex-col overflow-hidden transition-all duration-300 ${posterTheme === 'dark' ? 'bg-[#1a1a1a] text-white' : 'bg-[#fcfcfc] text-black'} ${isSquare ? 'aspect-square' : 'aspect-[3/4]'}`}
+                  style={{ width: '100%', maxWidth: '375px' }}
+                >
+                  <div className={`flex flex-col h-full ${isSquare ? 'p-6' : 'p-8'}`}>
+                    <div className={`flex justify-between items-center mb-6 text-[12px] font-medium tracking-wider ${posterTheme === 'dark' ? 'text-white/50' : 'text-black/40'}`}>
+                      <span>记录人：User</span>
+                      <span>记录于 {currentExcerpt.date}</span>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center">
+                      <h2 className={`font-serif font-black leading-[1.4] tracking-tight ${isSquare ? 'text-[20px]' : 'text-[24px]'}`}>
+                        {renderHighlightedText(currentExcerpt.text, currentExcerpt.highlightedWords)}
+                      </h2>
+                    </div>
+                    <div className={`flex justify-center mt-6 ${posterTheme === 'dark' ? 'text-white/30' : 'text-black/20'}`}>
+                      <span className="text-[10px] tracking-widest">1 / 3</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Page 2: Sprout 1 & 2 */}
+              <div className="min-w-full flex items-center justify-center snap-center p-4">
+                <div 
+                  ref={(el) => posterRefs.current[1] = el}
+                  className={`relative shrink-0 flex flex-col overflow-hidden transition-all duration-300 ${posterTheme === 'dark' ? 'bg-[#1a1a1a] text-white' : 'bg-[#fcfcfc] text-black'} ${isSquare ? 'aspect-square' : 'aspect-[3/4]'}`}
+                  style={{ width: '100%', maxWidth: '375px' }}
+                >
+                  <div className={`flex flex-col h-full ${isSquare ? 'p-6' : 'p-8'}`}>
+                    <div className="flex-1 flex flex-col justify-center">
+                      <p className={`font-sans font-bold leading-relaxed border-l-2 pl-4 mb-6 ${isSquare ? 'text-[13px]' : 'text-[15px]'} ${posterTheme === 'dark' ? 'border-white text-white/90' : 'border-black text-black/90'}`}>
+                        {currentExcerpt.sprout.part1}
+                      </p>
+                      <div className={`font-serif text-justify ${isSquare ? 'text-[13px] leading-[1.6]' : 'text-[15px] leading-[1.8]'} ${posterTheme === 'dark' ? 'text-white/80' : 'text-gray-800'} first-letter:text-4xl first-letter:font-black first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none`}>
+                        {currentExcerpt.sprout.part2}
+                      </div>
+                    </div>
+                    <div className={`flex justify-center mt-6 ${posterTheme === 'dark' ? 'text-white/30' : 'text-black/20'}`}>
+                      <span className="text-[10px] tracking-widest">2 / 3</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Page 3: Aha Moment */}
+              <div className="min-w-full flex items-center justify-center snap-center p-4">
+                <div 
+                  ref={(el) => posterRefs.current[2] = el}
+                  className={`relative shrink-0 flex flex-col overflow-hidden transition-all duration-300 ${posterTheme === 'dark' ? 'bg-[#1a1a1a] text-white' : 'bg-[#fcfcfc] text-black'} ${isSquare ? 'aspect-square' : 'aspect-[3/4]'}`}
+                  style={{ width: '100%', maxWidth: '375px' }}
+                >
+                  <div className={`flex flex-col h-full ${isSquare ? 'p-6' : 'p-8'}`}>
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className={`w-full border-t border-b py-8 ${posterTheme === 'dark' ? 'border-white/10' : 'border-black/10'}`}>
+                        <p className={`font-serif font-medium italic leading-relaxed text-center ${isSquare ? 'text-[16px]' : 'text-[20px]'}`}>
+                          "{currentExcerpt.sprout.part3}"
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`flex justify-center mt-6 ${posterTheme === 'dark' ? 'text-white/30' : 'text-black/20'}`}>
+                      <span className="text-[10px] tracking-widest">3 / 3</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Settings Panel */}
+        <div className="bg-white border-t border-gray-200 p-6 shrink-0 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+          <div className="max-w-md mx-auto space-y-6">
+            {/* Theme Selection */}
+            <div>
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block">视觉风格 Theme</span>
+              <div className="flex gap-3">
+                <button onClick={() => setPosterTheme('light')} className={`flex-1 py-3 rounded-xl border-2 transition-all ${posterTheme === 'light' ? 'border-black bg-gray-50 font-bold' : 'border-gray-100 text-gray-500 hover:border-gray-200'}`}>
+                  浅色模板
+                </button>
+                <button onClick={() => setPosterTheme('dark')} className={`flex-1 py-3 rounded-xl border-2 transition-all ${posterTheme === 'dark' ? 'border-black bg-gray-50 font-bold' : 'border-gray-100 text-gray-500 hover:border-gray-200'}`}>
+                  深色模板
+                </button>
+              </div>
+            </div>
+
+            {/* Ratio Selection */}
+            <div>
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block">画布比例 Ratio</span>
+              <div className="flex gap-3">
+                <button onClick={() => setPosterRatio('1:1')} className={`flex-1 py-3 rounded-xl border-2 transition-all ${posterRatio === '1:1' ? 'border-black bg-gray-50 font-bold' : 'border-gray-100 text-gray-500 hover:border-gray-200'}`}>
+                  1:1
+                </button>
+                <button onClick={() => setPosterRatio('3:4')} className={`flex-1 py-3 rounded-xl border-2 transition-all ${posterRatio === '3:4' ? 'border-black bg-gray-50 font-bold' : 'border-gray-100 text-gray-500 hover:border-gray-200'}`}>
+                  3:4
+                </button>
+                <button onClick={() => setPosterRatio('auto')} className={`flex-1 py-3 rounded-xl border-2 transition-all ${posterRatio === 'auto' ? 'border-black bg-gray-50 font-bold' : 'border-gray-100 text-gray-500 hover:border-gray-200'}`}>
+                  自动
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="fixed inset-0 w-full bg-white flex items-center justify-center p-0 md:p-4 font-sans overflow-hidden">
@@ -2014,9 +2195,10 @@ export default function App() {
         {currentScreen === 'editor' && renderEditor()}
         {currentScreen === 'chat' && renderChat()}
         {currentScreen === 'archive' && renderArchive()}
+        {currentScreen === 'poster' && renderPosterScreen()}
 
         {/* FAB and Create Menu */}
-        {currentScreen !== 'editor' && currentScreen !== 'chat' && currentScreen !== 'archive' && !isMultiSelectMode && (
+        {currentScreen !== 'editor' && currentScreen !== 'chat' && currentScreen !== 'archive' && currentScreen !== 'poster' && !isMultiSelectMode && (
           <>
             <AnimatePresence>
               {isCreateMenuOpen && (
@@ -2075,14 +2257,14 @@ export default function App() {
                           >
                             <div className="flex flex-col items-start text-left z-10">
                               <div className="flex items-center gap-1.5 mb-2">
-                                <Sparkles size={16} className="text-orange-500 fill-orange-500" />
+                                <Sparkles size={14} className="text-orange-500 fill-orange-500" />
                               </div>
-                              <span className="text-[18px] font-bold text-white tracking-tight leading-none">启发式笔记</span>
-                              <span className="text-[11px] text-white/50 mt-2 font-medium">AI 采访你，轻松成好文</span>
+                              <span className="text-[16px] font-bold text-white tracking-tight leading-none">启发式笔记</span>
+                              <span className="text-[10px] text-white/50 mt-2 font-medium">AI 访谈，妙想成文</span>
                             </div>
 
                             {/* Mascot Icon - Positioned Right like reference */}
-                            <div className="absolute -right-6 -bottom-12 w-56 h-44 flex items-end justify-center">
+                            <div className="absolute right-0 -bottom-4 w-40 h-40 flex items-end justify-center">
                               <motion.div 
                                 animate={{ y: [0, -4, 0] }} 
                                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -2091,7 +2273,7 @@ export default function App() {
                                 <img 
                                   src="https://cdn.phototourl.com/free/2026-03-26-6304bee5-2b6a-4fdd-8b23-75648ac52af8.png" 
                                   alt="AI Mascot" 
-                                  className="w-44 h-44 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] relative z-10 scale-x-[-1]"
+                                  className="w-36 h-36 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] relative z-10 scale-x-[-1]"
                                   referrerPolicy="no-referrer"
                                 />
                               </motion.div>
@@ -2105,14 +2287,14 @@ export default function App() {
                                 hidden: { opacity: 0 },
                                 visible: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } }
                               }}
-                              className="aspect-[1.3/1] rounded-[32px] bg-white/80 backdrop-blur-md p-5 flex flex-col items-start justify-between shadow-sm border border-white/40 active:scale-[0.96] transition-transform"
+                              className="h-[100px] rounded-[32px] bg-white/80 backdrop-blur-md p-5 flex flex-col items-start justify-between shadow-sm border border-white/40 active:scale-[0.96] transition-transform"
                             >
-                              <div className="w-8 h-8 flex items-center justify-center">
+                              <div className="w-6 h-6 flex items-center justify-center">
                                 <img src="https://cdn.phototourl.com/member/2026-04-02-ebc43aa3-3847-4212-9e91-4c697a3a980f.png" alt="会议笔记" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                               </div>
                               <div className="text-left">
-                                <p className="font-bold text-[16px] text-gray-900">会议笔记</p>
-                                <p className="text-[11px] text-gray-400 mt-1 leading-tight">记录思考，自动成稿</p>
+                                <p className="font-bold text-[15px] text-gray-900">会议笔记</p>
+                                <p className="text-[10px] text-gray-400 mt-1 leading-tight">记录思考，自动成稿</p>
                               </div>
                             </motion.button>
 
@@ -2121,14 +2303,14 @@ export default function App() {
                                 hidden: { opacity: 0 },
                                 visible: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } }
                               }}
-                              className="aspect-[1.3/1] rounded-[32px] bg-white/80 backdrop-blur-md p-5 flex flex-col items-start justify-between shadow-sm border border-white/40 active:scale-[0.96] transition-transform"
+                              className="h-[100px] rounded-[32px] bg-white/80 backdrop-blur-md p-5 flex flex-col items-start justify-between shadow-sm border border-white/40 active:scale-[0.96] transition-transform"
                             >
-                              <div className="w-8 h-8 flex items-center justify-center">
+                              <div className="w-6 h-6 flex items-center justify-center">
                                 <img src="https://cdn.phototourl.com/member/2026-04-02-ea81de41-9157-4146-9d8f-197fdf4ec40d.png" alt="口述记" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                               </div>
                               <div className="text-left">
-                                <p className="font-bold text-[16px] text-gray-900">口述记</p>
-                                <p className="text-[11px] text-gray-400 mt-1 leading-tight">瞬时灵感，你说我记</p>
+                                <p className="font-bold text-[15px] text-gray-900">口述记</p>
+                                <p className="text-[10px] text-gray-400 mt-1 leading-tight">瞬时灵感，你说我记</p>
                               </div>
                             </motion.button>
                           </div>
