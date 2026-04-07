@@ -1387,11 +1387,19 @@ export default function App() {
     );
   };
 
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [chatMessages, chatMode]);
+
   const renderChat = () => {
     const isExcerpt = chatMode === 'excerpt' && chatExcerpt;
 
     return (
-      <div className="flex-1 flex flex-col bg-white relative">
+      <div className="flex flex-col h-full bg-white relative overflow-hidden">
         {/* Header */}
         <div className="px-5 pt-12 pb-4 flex items-center">
           <button 
@@ -1403,7 +1411,7 @@ export default function App() {
         </div>
 
         {/* Chat Content */}
-        <div className="flex-1 overflow-y-auto px-6 pb-40 flex flex-col">
+        <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-6 pb-40 flex flex-col scroll-smooth">
           <div className="flex-1 shrink-0 min-h-[20px]"></div>
           <AnimatePresence mode="wait">
             {!isExcerpt ? (
