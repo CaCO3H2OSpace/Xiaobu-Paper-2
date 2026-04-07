@@ -1362,8 +1362,7 @@ export default function App() {
 
             <button 
               onClick={() => {
-                const fullText = `【摘录】\n${currentExcerpt.text}\n\n【破题】\n${currentExcerpt.sprout.part1}\n\n【延展】\n${currentExcerpt.sprout.part2}\n\n【啊哈时刻】\n${currentExcerpt.sprout.part3}`;
-                setChatInput(fullText);
+                setChatInput('');
                 setChatMode('excerpt');
                 setChatExcerpt(currentExcerpt);
                 setIsReferenceVisible(true);
@@ -1460,17 +1459,17 @@ export default function App() {
                 exit={{ opacity: 0, y: -20 }}
                 className="pt-10 flex flex-col shrink-0"
               >
-                {/* Referenced Original Text */}
-                <div className="bg-gray-100/50 rounded-2xl p-4 max-w-[85%] self-end mb-4">
-                  <p className="text-[13px] text-gray-500 mb-2 border-l-2 border-gray-300 pl-2">引用自《{chatExcerpt.source}》</p>
-                  <p className="text-[15px] text-gray-700 leading-relaxed">
-                    {chatExcerpt.text}
-                  </p>
-                </div>
-
-                {/* AI Message Bubble */}
-                <div className="bg-gray-50/80 rounded-[24px] p-6 mb-8 shadow-sm border border-gray-100/50 max-w-[90%]">
+                {/* AI Message Bubble (Combined Excerpt and Explanation) */}
+                <div className="bg-gray-50/80 rounded-[24px] p-6 mb-8 shadow-sm border border-gray-100/50 max-w-[90%] self-start">
                   <div className="flex flex-col gap-4">
+                    {/* Referenced Original Text */}
+                    <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                      <p className="text-[13px] text-gray-500 mb-2 border-l-2 border-gray-300 pl-2">引用自《{chatExcerpt.source}》</p>
+                      <p className="text-[15px] text-gray-700 leading-relaxed">
+                        {chatExcerpt.text}
+                      </p>
+                    </div>
+                    
                     <p className="text-[15px] text-gray-800 leading-relaxed">{chatExcerpt.sprout?.part1}</p>
                     <p className="text-[15px] text-gray-800 leading-relaxed">{chatExcerpt.sprout?.part2}</p>
                     <p className="text-[15px] text-gray-800 font-medium italic leading-relaxed">"{chatExcerpt.sprout?.part3}"</p>
