@@ -624,6 +624,7 @@ export default function App() {
   const [chatMode, setChatMode] = useState<'default' | 'excerpt'>('default');
   const [chatExcerpt, setChatExcerpt] = useState<any>(null);
   const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState<{role: 'user'|'ai', text: string}[]>([]);
   const [isReferenceVisible, setIsReferenceVisible] = useState(true);
   const [archiveIndex, setArchiveIndex] = useState(0);
   const [isCopied, setIsCopied] = useState(false);
@@ -1451,40 +1452,55 @@ export default function App() {
                 exit={{ opacity: 0, y: -20 }}
                 className="pt-10 flex flex-col shrink-0"
               >
-                {/* AI Message Bubble */}
-                <div className="bg-gray-50/80 rounded-[24px] p-6 mb-8 shadow-sm border border-gray-100/50 max-w-[90%]">
-                  <p className="text-[16px] text-gray-800 leading-relaxed mb-4 font-medium">
+                {/* Referenced Original Text */}
+                <div className="bg-gray-100/50 rounded-2xl p-4 max-w-[85%] self-end mb-4">
+                  <p className="text-[13px] text-gray-500 mb-2 border-l-2 border-gray-300 pl-2">引用自《{chatExcerpt.source}》</p>
+                  <p className="text-[15px] text-gray-700 leading-relaxed">
                     {chatExcerpt.text}
                   </p>
-                  <div className="flex flex-col gap-3 mb-6">
-                    <p className="text-[14px] text-gray-600 border-l-2 border-gray-300 pl-3 leading-relaxed">{chatExcerpt.sprout?.part1}</p>
-                    <p className="text-[14px] text-gray-600 border-l-2 border-gray-300 pl-3 leading-relaxed">{chatExcerpt.sprout?.part2}</p>
-                    <p className="text-[14px] text-gray-600 border-l-2 border-gray-300 pl-3 italic leading-relaxed">{chatExcerpt.sprout?.part3}</p>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <p className="text-[12px] text-gray-400">—— 《{chatExcerpt.source}》</p>
-                    <p className="text-[12px] text-gray-400">记于 {chatExcerpt.date}</p>
+                </div>
+
+                {/* AI Message Bubble */}
+                <div className="bg-gray-50/80 rounded-[24px] p-6 mb-8 shadow-sm border border-gray-100/50 max-w-[90%]">
+                  <div className="flex flex-col gap-4">
+                    <p className="text-[15px] text-gray-800 leading-relaxed">{chatExcerpt.sprout?.part1}</p>
+                    <p className="text-[15px] text-gray-800 leading-relaxed">{chatExcerpt.sprout?.part2}</p>
+                    <p className="text-[15px] text-gray-800 font-medium italic leading-relaxed">"{chatExcerpt.sprout?.part3}"</p>
                   </div>
                 </div>
 
                 {/* Recommended Prompts */}
-                <div className="flex flex-col gap-4">
-                  {chatExcerpt.sprout?.part4?.map((query: string, i: number) => (
-                    <button 
-                      key={i}
-                      onClick={() => setChatInput(query)}
-                      className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group text-left"
-                    >
-                      <span className="text-lg">✨</span>
-                      <span className="text-[15px]">{query}</span>
-                    </button>
-                  ))}
-                </div>
+                {chatMessages.length === 0 && (
+                  <div className="flex flex-col gap-4">
+                    {chatExcerpt.sprout?.part4?.map((query: string, i: number) => (
+                      <button 
+                        key={i}
+                        onClick={() => {
+                          setChatMessages([{ role: 'user', text: query }, { role: 'ai', text: '这是一个演示回复。在实际应用中，这里将连接到 Gemini API 进行实时对话。' }]);
+                        }}
+                        className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group text-left"
+                      >
+                        <span className="text-lg">✨</span>
+                        <span className="text-[15px]">{query}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Chat Messages */}
+                {chatMessages.map((msg, i) => (
+                  <div key={i} className={`flex flex-col mb-6 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                    <div className={`rounded-[24px] p-4 max-w-[85%] ${msg.role === 'user' ? 'bg-black text-white' : 'bg-gray-50/80 text-gray-800 border border-gray-100/50'}`}>
+                      <p className="text-[15px] leading-relaxed">{msg.text}</p>
+                    </div>
+                  </div>
+                ))}
 
                 <button 
                   onClick={() => {
                     setChatMode('default');
                     setChatExcerpt(null);
+                    setChatMessages([]);
                   }}
                   className="mt-8 flex items-center gap-2 text-gray-400 text-[13px] hover:text-gray-600 transition-colors"
                 >
@@ -1522,6 +1538,12 @@ export default function App() {
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && chatInput.trim()) {
+                    setChatMessages([...chatMessages, { role: 'user', text: chatInput.trim() }, { role: 'ai', text: '这是一个演示回复。在实际应用中，这里将连接到 Gemini API 进行实时对话。' }]);
+                    setChatInput('');
+                  }
+                }}
                 placeholder="提问、搜索或创作任何内容"
                 className="w-full bg-transparent border-none focus:ring-0 text-[16px] text-gray-900 placeholder:text-gray-300 px-1"
               />
@@ -1539,9 +1561,21 @@ export default function App() {
                   </button>
                 </div>
                 
-                <button className="w-10 h-10 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
-                  <Mic size={20} />
-                </button>
+                {chatInput.trim() ? (
+                  <button 
+                    onClick={() => {
+                      setChatMessages([...chatMessages, { role: 'user', text: chatInput.trim() }, { role: 'ai', text: '这是一个演示回复。在实际应用中，这里将连接到 Gemini API 进行实时对话。' }]);
+                      setChatInput('');
+                    }}
+                    className="w-10 h-10 rounded-full bg-black text-white shadow-sm flex items-center justify-center hover:bg-gray-800 transition-colors"
+                  >
+                    <ArrowLeft size={20} className="rotate-180" />
+                  </button>
+                ) : (
+                  <button className="w-10 h-10 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+                    <Mic size={20} />
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -2079,52 +2113,56 @@ export default function App() {
         </div>
 
         {/* Preview Area */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden flex items-center justify-center p-4 sm:p-8 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
           {isAuto ? (
-            <div 
-              ref={(el) => posterRefs.current[0] = el}
-              className={`relative shrink-0 flex flex-col overflow-hidden transition-all duration-300 ${posterTheme === 'dark' ? 'bg-[#1a1a1a] text-white' : 'bg-[#fcfcfc] text-black'} h-fit`}
-              style={{ width: '100%', maxWidth: '375px' }}
-            >
-              {/* Poster Content for Auto */}
-              <div className="flex flex-col h-full px-8 py-10">
-                {/* Header Info */}
-                <div className={`flex justify-between items-center mb-8 text-[12px] font-medium tracking-wider ${posterTheme === 'dark' ? 'text-white/50' : 'text-black/40'}`}>
-                  <span>记录人：User</span>
-                  <span>记录于 {currentExcerpt.date}</span>
-                </div>
+            <div className="min-h-full flex flex-col items-center">
+              <div className="flex-1 shrink-0 min-h-[20px]"></div>
+              <div 
+                ref={(el) => posterRefs.current[0] = el}
+                className={`relative shrink-0 flex flex-col overflow-hidden transition-all duration-300 ${posterTheme === 'dark' ? 'bg-[#1a1a1a] text-white' : 'bg-[#fcfcfc] text-black'} h-fit`}
+                style={{ width: '100%', maxWidth: '375px' }}
+              >
+                {/* Poster Content for Auto */}
+                <div className="flex flex-col h-full px-8 py-10">
+                  {/* Header Info */}
+                  <div className={`flex justify-between items-center mb-8 text-[12px] font-medium tracking-wider ${posterTheme === 'dark' ? 'text-white/50' : 'text-black/40'}`}>
+                    <span>记录人：User</span>
+                    <span>记录于 {currentExcerpt.date}</span>
+                  </div>
 
-                {/* Excerpt */}
-                <h2 className="font-serif font-black leading-[1.4] tracking-tight text-[24px] mb-8">
-                  {renderHighlightedText(currentExcerpt.text, currentExcerpt.highlightedWords)}
-                </h2>
+                  {/* Excerpt */}
+                  <h2 className="font-serif font-black leading-[1.4] tracking-tight text-[24px] mb-8">
+                    {renderHighlightedText(currentExcerpt.text, currentExcerpt.highlightedWords)}
+                  </h2>
 
-                {/* Sprout Content */}
-                <div className="flex-1 flex flex-col justify-center min-h-0">
-                  <p className={`font-sans font-bold leading-relaxed border-l-2 pl-3 text-[14px] mb-6 ${posterTheme === 'dark' ? 'border-white text-white/90' : 'border-black text-black/90'}`}>
-                    {currentExcerpt.sprout.part1}
-                  </p>
-                  <div className={`font-serif text-justify text-[15px] leading-[1.8] mb-8 ${posterTheme === 'dark' ? 'text-white/80' : 'text-gray-800'} first-letter:text-3xl first-letter:font-black first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:leading-none`}>
-                    {currentExcerpt.sprout.part2}
+                  {/* Sprout Content */}
+                  <div className="flex-1 flex flex-col justify-center min-h-0">
+                    <p className={`font-sans font-bold leading-relaxed border-l-2 pl-3 text-[14px] mb-6 ${posterTheme === 'dark' ? 'border-white text-white/90' : 'border-black text-black/90'}`}>
+                      {currentExcerpt.sprout.part1}
+                    </p>
+                    <div className={`font-serif text-justify text-[15px] leading-[1.8] mb-8 ${posterTheme === 'dark' ? 'text-white/80' : 'text-gray-800'} first-letter:text-3xl first-letter:font-black first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:leading-none`}>
+                      {currentExcerpt.sprout.part2}
+                    </div>
+                  </div>
+
+                  {/* Aha Moment */}
+                  <div className={`mt-auto border-t border-b py-4 ${posterTheme === 'dark' ? 'border-white/10' : 'border-black/10'}`}>
+                    <p className="font-serif font-medium italic leading-relaxed text-center text-[14px]">
+                      "{currentExcerpt.sprout.part3}"
+                    </p>
                   </div>
                 </div>
-
-                {/* Aha Moment */}
-                <div className={`mt-auto border-t border-b py-4 ${posterTheme === 'dark' ? 'border-white/10' : 'border-black/10'}`}>
-                  <p className="font-serif font-medium italic leading-relaxed text-center text-[14px]">
-                    "{currentExcerpt.sprout.part3}"
-                  </p>
-                </div>
               </div>
+              <div className="flex-1 shrink-0 min-h-[20px]"></div>
             </div>
           ) : (
             <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide items-center" style={{ scrollbarWidth: 'none' }}>
               {pages.map((page, index) => (
-                <div key={index} className="min-w-full flex items-center justify-center snap-center p-4">
+                <div key={index} className="min-w-full h-full flex items-center justify-center snap-center p-4">
                   <div 
                     ref={(el) => posterRefs.current[index] = el}
                     className={`relative shrink-0 flex flex-col overflow-hidden transition-all duration-300 ${posterTheme === 'dark' ? 'bg-[#1a1a1a] text-white' : 'bg-[#fcfcfc] text-black'} ${isSquare ? 'aspect-square' : 'aspect-[3/4]'}`}
-                    style={{ width: '100%', maxWidth: '375px' }}
+                    style={{ height: '100%', maxHeight: '600px', width: 'auto', maxWidth: '100%' }}
                   >
                     <div className={`flex flex-col h-full ${isSquare ? 'p-6' : 'p-8'}`}>
                       {page.type === 'cover' && (
