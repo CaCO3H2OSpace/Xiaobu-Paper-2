@@ -1402,55 +1402,55 @@ export default function App() {
         </div>
 
         {/* Chat Content */}
-        <div className="flex-1 overflow-y-auto px-6 pb-40">
-          <div className="min-h-full flex flex-col justify-end">
-            <AnimatePresence mode="wait">
-              {!isExcerpt ? (
-                <motion.div 
-                  key="default-chat"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="pt-10 flex flex-col"
-                >
-                  <div className="w-20 h-20 mb-6">
-                    <img 
-                      src="https://cdn.phototourl.com/free/2026-03-31-730a3037-1360-4f94-8f3f-00332291f68d.png" 
-                      className="w-full h-full object-contain"
-                      alt="Mascot"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-                  <h2 className="text-[24px] font-bold text-gray-900 mb-8">今日事，小布来帮</h2>
-                  
-                  <div className="flex flex-col gap-4">
-                    <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
-                      <span className="text-lg">🖊️</span>
-                      <span className="text-[15px]">生成 <span className="text-blue-500 font-medium">周报</span></span>
-                    </button>
-                    <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
-                      <span className="text-lg">💻</span>
-                      <span className="text-[15px]">如何自己搭建一个 <span className="text-orange-500 font-medium">Openclaw</span></span>
-                    </button>
-                    <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
-                      <span className="text-lg">🔍</span>
-                      <span className="text-[15px]">搜索任何内容</span>
-                    </button>
-                  </div>
-
-                  <button className="mt-8 flex items-center gap-2 text-gray-400 text-[13px] hover:text-gray-600 transition-colors">
-                    <span>换一换</span>
-                    <RefreshCw size={14} />
+        <div className="flex-1 overflow-y-auto px-6 pb-40 flex flex-col">
+          <div className="flex-1 shrink-0 min-h-[20px]"></div>
+          <AnimatePresence mode="wait">
+            {!isExcerpt ? (
+              <motion.div 
+                key="default-chat"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="pt-10 flex flex-col shrink-0"
+              >
+                <div className="w-20 h-20 mb-6">
+                  <img 
+                    src="https://cdn.phototourl.com/free/2026-03-31-730a3037-1360-4f94-8f3f-00332291f68d.png" 
+                    className="w-full h-full object-contain"
+                    alt="Mascot"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <h2 className="text-[24px] font-bold text-gray-900 mb-8">今日事，小布来帮</h2>
+                
+                <div className="flex flex-col gap-4">
+                  <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
+                    <span className="text-lg">🖊️</span>
+                    <span className="text-[15px]">生成 <span className="text-blue-500 font-medium">周报</span></span>
                   </button>
-                </motion.div>
-              ) : (
-                <motion.div 
-                  key="excerpt-chat"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="pt-10 flex flex-col"
-                >
+                  <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
+                    <span className="text-lg">💻</span>
+                    <span className="text-[15px]">如何自己搭建一个 <span className="text-orange-500 font-medium">Openclaw</span></span>
+                  </button>
+                  <button className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors group">
+                    <span className="text-lg">🔍</span>
+                    <span className="text-[15px]">搜索任何内容</span>
+                  </button>
+                </div>
+
+                <button className="mt-8 flex items-center gap-2 text-gray-400 text-[13px] hover:text-gray-600 transition-colors">
+                  <span>换一换</span>
+                  <RefreshCw size={14} />
+                </button>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="excerpt-chat"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="pt-10 flex flex-col shrink-0"
+              >
                 {/* AI Message Bubble */}
                 <div className="bg-gray-50/80 rounded-[24px] p-6 mb-8 shadow-sm border border-gray-100/50 max-w-[90%]">
                   <p className="text-[16px] text-gray-800 leading-relaxed mb-4 font-medium">
@@ -1494,7 +1494,6 @@ export default function App() {
               </motion.div>
             )}
           </AnimatePresence>
-          </div>
         </div>
 
         {/* Input Area */}
@@ -1993,9 +1992,54 @@ export default function App() {
     const isVertical = posterRatio === '3:4';
     const isAuto = posterRatio === 'auto';
 
+    // Dynamic pagination logic
+    const pages = (() => {
+      if (isAuto) return [{ type: 'auto' }];
+      
+      const charsPerPage = isSquare ? 150 : 280;
+      const pgs = [];
+      
+      // Page 1: Cover (Header + Excerpt)
+      pgs.push({ type: 'cover' });
+      
+      // Page 2: Sprout Part 1 (Intro)
+      // If part 1 is very long, we could split it, but usually it's short.
+      // We'll put part 1 on its own page to ensure it fits well and looks distinct.
+      pgs.push({ type: 'sprout-intro' });
+      
+      // Pages 3...N: Sprout Part 2 (Main body)
+      const part2 = currentExcerpt.sprout.part2;
+      let currentChunk = '';
+      
+      // Split by punctuation to keep sentences intact
+      const sentences = part2.split(/([。！？.!?])/);
+      let combinedSentences = [];
+      for(let i = 0; i < sentences.length; i += 2) {
+        combinedSentences.push(sentences[i] + (sentences[i+1] || ''));
+      }
+
+      for (const sentence of combinedSentences) {
+        if (!sentence.trim()) continue;
+        if ((currentChunk + sentence).length > charsPerPage && currentChunk.length > 0) {
+          pgs.push({ type: 'sprout-body', text: currentChunk });
+          currentChunk = sentence;
+        } else {
+          currentChunk += sentence;
+        }
+      }
+      if (currentChunk.trim()) {
+        pgs.push({ type: 'sprout-body', text: currentChunk });
+      }
+      
+      // Last Page: Aha Moment
+      pgs.push({ type: 'outro' });
+      
+      return pgs;
+    })();
+
     const handleSavePoster = async () => {
       try {
-        const pagesToSave = isAuto ? [posterRefs.current[0]] : [posterRefs.current[0], posterRefs.current[1], posterRefs.current[2]];
+        const pagesToSave = isAuto ? [posterRefs.current[0]] : pages.map((_, i) => posterRefs.current[i]);
         
         for (let i = 0; i < pagesToSave.length; i++) {
           const ref = pagesToSave[i];
@@ -2075,74 +2119,61 @@ export default function App() {
             </div>
           ) : (
             <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide items-center" style={{ scrollbarWidth: 'none' }}>
-              {/* Page 1: Excerpt */}
-              <div className="min-w-full flex items-center justify-center snap-center p-4">
-                <div 
-                  ref={(el) => posterRefs.current[0] = el}
-                  className={`relative shrink-0 flex flex-col overflow-hidden transition-all duration-300 ${posterTheme === 'dark' ? 'bg-[#1a1a1a] text-white' : 'bg-[#fcfcfc] text-black'} ${isSquare ? 'aspect-square' : 'aspect-[3/4]'}`}
-                  style={{ width: '100%', maxWidth: '375px' }}
-                >
-                  <div className={`flex flex-col h-full ${isSquare ? 'p-6' : 'p-8'}`}>
-                    <div className={`flex justify-between items-center mb-6 text-[12px] font-medium tracking-wider ${posterTheme === 'dark' ? 'text-white/50' : 'text-black/40'}`}>
-                      <span>记录人：User</span>
-                      <span>记录于 {currentExcerpt.date}</span>
-                    </div>
-                    <div className="flex-1 flex items-center justify-center">
-                      <h2 className={`font-serif font-black leading-[1.4] tracking-tight ${isSquare ? 'text-[20px]' : 'text-[24px]'}`}>
-                        {renderHighlightedText(currentExcerpt.text, currentExcerpt.highlightedWords)}
-                      </h2>
-                    </div>
-                    <div className={`flex justify-center mt-6 ${posterTheme === 'dark' ? 'text-white/30' : 'text-black/20'}`}>
-                      <span className="text-[10px] tracking-widest">1 / 3</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {pages.map((page, index) => (
+                <div key={index} className="min-w-full flex items-center justify-center snap-center p-4">
+                  <div 
+                    ref={(el) => posterRefs.current[index] = el}
+                    className={`relative shrink-0 flex flex-col overflow-hidden transition-all duration-300 ${posterTheme === 'dark' ? 'bg-[#1a1a1a] text-white' : 'bg-[#fcfcfc] text-black'} ${isSquare ? 'aspect-square' : 'aspect-[3/4]'}`}
+                    style={{ width: '100%', maxWidth: '375px' }}
+                  >
+                    <div className={`flex flex-col h-full ${isSquare ? 'p-6' : 'p-8'}`}>
+                      {page.type === 'cover' && (
+                        <>
+                          <div className={`flex justify-between items-center mb-6 text-[12px] font-medium tracking-wider ${posterTheme === 'dark' ? 'text-white/50' : 'text-black/40'}`}>
+                            <span>记录人：User</span>
+                            <span>记录于 {currentExcerpt.date}</span>
+                          </div>
+                          <div className="flex-1 flex items-center justify-center">
+                            <h2 className={`font-serif font-black leading-[1.4] tracking-tight ${isSquare ? 'text-[20px]' : 'text-[24px]'}`}>
+                              {renderHighlightedText(currentExcerpt.text, currentExcerpt.highlightedWords)}
+                            </h2>
+                          </div>
+                        </>
+                      )}
+                      
+                      {page.type === 'sprout-intro' && (
+                        <div className="flex-1 flex flex-col justify-center">
+                          <p className={`font-sans font-bold leading-relaxed border-l-2 pl-4 ${isSquare ? 'text-[14px]' : 'text-[16px]'} ${posterTheme === 'dark' ? 'border-white text-white/90' : 'border-black text-black/90'}`}>
+                            {currentExcerpt.sprout.part1}
+                          </p>
+                        </div>
+                      )}
 
-              {/* Page 2: Sprout 1 & 2 */}
-              <div className="min-w-full flex items-center justify-center snap-center p-4">
-                <div 
-                  ref={(el) => posterRefs.current[1] = el}
-                  className={`relative shrink-0 flex flex-col overflow-hidden transition-all duration-300 ${posterTheme === 'dark' ? 'bg-[#1a1a1a] text-white' : 'bg-[#fcfcfc] text-black'} ${isSquare ? 'aspect-square' : 'aspect-[3/4]'}`}
-                  style={{ width: '100%', maxWidth: '375px' }}
-                >
-                  <div className={`flex flex-col h-full ${isSquare ? 'p-6' : 'p-8'}`}>
-                    <div className="flex-1 flex flex-col justify-center">
-                      <p className={`font-sans font-bold leading-relaxed border-l-2 pl-4 mb-6 ${isSquare ? 'text-[13px]' : 'text-[15px]'} ${posterTheme === 'dark' ? 'border-white text-white/90' : 'border-black text-black/90'}`}>
-                        {currentExcerpt.sprout.part1}
-                      </p>
-                      <div className={`font-serif text-justify ${isSquare ? 'text-[13px] leading-[1.6]' : 'text-[15px] leading-[1.8]'} ${posterTheme === 'dark' ? 'text-white/80' : 'text-gray-800'} first-letter:text-4xl first-letter:font-black first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none`}>
-                        {currentExcerpt.sprout.part2}
+                      {page.type === 'sprout-body' && (
+                        <div className="flex-1 flex flex-col justify-center">
+                          <div className={`font-serif text-justify ${isSquare ? 'text-[13px] leading-[1.6]' : 'text-[15px] leading-[1.8]'} ${posterTheme === 'dark' ? 'text-white/80' : 'text-gray-800'} first-letter:text-4xl first-letter:font-black first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none`}>
+                            {page.text}
+                          </div>
+                        </div>
+                      )}
+
+                      {page.type === 'outro' && (
+                        <div className="flex-1 flex items-center justify-center">
+                          <div className={`w-full border-t border-b py-8 ${posterTheme === 'dark' ? 'border-white/10' : 'border-black/10'}`}>
+                            <p className={`font-serif font-medium italic leading-relaxed text-center ${isSquare ? 'text-[16px]' : 'text-[20px]'}`}>
+                              "{currentExcerpt.sprout.part3}"
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className={`flex justify-center mt-6 ${posterTheme === 'dark' ? 'text-white/30' : 'text-black/20'}`}>
+                        <span className="text-[10px] tracking-widest">{index + 1} / {pages.length}</span>
                       </div>
                     </div>
-                    <div className={`flex justify-center mt-6 ${posterTheme === 'dark' ? 'text-white/30' : 'text-black/20'}`}>
-                      <span className="text-[10px] tracking-widest">2 / 3</span>
-                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Page 3: Aha Moment */}
-              <div className="min-w-full flex items-center justify-center snap-center p-4">
-                <div 
-                  ref={(el) => posterRefs.current[2] = el}
-                  className={`relative shrink-0 flex flex-col overflow-hidden transition-all duration-300 ${posterTheme === 'dark' ? 'bg-[#1a1a1a] text-white' : 'bg-[#fcfcfc] text-black'} ${isSquare ? 'aspect-square' : 'aspect-[3/4]'}`}
-                  style={{ width: '100%', maxWidth: '375px' }}
-                >
-                  <div className={`flex flex-col h-full ${isSquare ? 'p-6' : 'p-8'}`}>
-                    <div className="flex-1 flex items-center justify-center">
-                      <div className={`w-full border-t border-b py-8 ${posterTheme === 'dark' ? 'border-white/10' : 'border-black/10'}`}>
-                        <p className={`font-serif font-medium italic leading-relaxed text-center ${isSquare ? 'text-[16px]' : 'text-[20px]'}`}>
-                          "{currentExcerpt.sprout.part3}"
-                        </p>
-                      </div>
-                    </div>
-                    <div className={`flex justify-center mt-6 ${posterTheme === 'dark' ? 'text-white/30' : 'text-black/20'}`}>
-                      <span className="text-[10px] tracking-widest">3 / 3</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           )}
         </div>
