@@ -15,7 +15,7 @@ import { Note, Notebook } from './types';
 import TagEditorPanel from './components/TagEditorPanel';
 import VoiceRecordingPanel from './components/VoiceRecordingPanel';
 
-type Screen = 'home' | 'editor' | 'notebook_detail' | 'chat' | 'archive' | 'poster';
+type Screen = 'home' | 'editor' | 'notebook_detail' | 'chat' | 'archive' | 'poster' | 'square';
 
 const NOTEBOOK_COLORS = ['#E5E7EB', '#F5E6E6', '#E6F5E9', '#E6EEF5', '#F5E6F0', '#F5F0E6'];
 
@@ -672,18 +672,7 @@ export default function App() {
   const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isLongPressRef = useRef(false);
 
-  const archiveContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (currentScreen === 'archive' && archiveContainerRef.current) {
-      // Use setTimeout to ensure DOM is fully rendered before scrolling
-      setTimeout(() => {
-        if (archiveContainerRef.current) {
-          archiveContainerRef.current.scrollLeft = archiveIndex * archiveContainerRef.current.clientWidth;
-        }
-      }, 10);
-    }
-  }, [currentScreen]);
 
   const handlePressStart = () => {
     isLongPressRef.current = false;
@@ -1235,9 +1224,78 @@ export default function App() {
     setIsCopied(false);
   }, [archiveIndex]);
 
-  const renderArchive = () => {
-    const totalExcerpts = PRE_GENERATED_EXCERPTS.length;
+  const renderSquare = () => {
+    const col1 = PRE_GENERATED_EXCERPTS.filter((_, i) => i % 2 === 0);
+    const col2 = PRE_GENERATED_EXCERPTS.filter((_, i) => i % 2 === 1);
 
+    return (
+      <div className="flex-1 flex flex-col bg-[#f5f5f5] h-full overflow-hidden relative">
+        <div className="px-6 pt-12 pb-4 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-gray-200 z-20 absolute top-0 left-0 right-0">
+          <button 
+            onClick={() => setCurrentScreen('home')} 
+            className="w-8 h-8 flex items-center justify-center text-black active:scale-90 transition-transform -ml-2"
+          >
+            <ChevronLeft size={24} strokeWidth={2} />
+          </button>
+          <span className="font-bold text-[16px]">今日广场</span>
+          <div className="w-8"></div>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto no-scrollbar pt-28 pb-8 px-4">
+          <div className="flex gap-4 items-start">
+            <div className="flex-1 flex flex-col gap-4">
+              {col1.map((excerpt, idx) => {
+                const originalIndex = idx * 2;
+                return (
+                  <div 
+                    key={`col1-${idx}`} 
+                    onClick={() => { 
+                      setArchiveIndex(originalIndex); 
+                      setCurrentScreen('archive'); 
+                    }} 
+                    className="bg-white rounded-2xl p-4 shadow-sm active:scale-95 transition-transform cursor-pointer border border-gray-100"
+                  >
+                    <p className="font-serif font-bold text-[15px] leading-snug mb-3">
+                      {renderHighlightedText(excerpt.text, excerpt.highlightedWords)}
+                    </p>
+                    <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                      <FileText size={10} />
+                      <span className="truncate">{excerpt.source}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex-1 flex flex-col gap-4">
+              {col2.map((excerpt, idx) => {
+                const originalIndex = idx * 2 + 1;
+                return (
+                  <div 
+                    key={`col2-${idx}`} 
+                    onClick={() => { 
+                      setArchiveIndex(originalIndex); 
+                      setCurrentScreen('archive'); 
+                    }} 
+                    className="bg-white rounded-2xl p-4 shadow-sm active:scale-95 transition-transform cursor-pointer border border-gray-100"
+                  >
+                    <p className="font-serif font-bold text-[15px] leading-snug mb-3">
+                      {renderHighlightedText(excerpt.text, excerpt.highlightedWords)}
+                    </p>
+                    <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                      <FileText size={10} />
+                      <span className="truncate">{excerpt.source}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderArchive = () => {
     const handleCopy = (text: string) => {
       navigator.clipboard.writeText(text);
       setIsCopied(true);
@@ -1252,113 +1310,94 @@ export default function App() {
       }
     };
 
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-      const container = e.currentTarget;
-      const scrollX = container.scrollLeft;
-      const itemWidth = container.clientWidth; // Use actual container width
-      const newIndex = Math.round(scrollX / itemWidth);
-      if (newIndex !== archiveIndex && newIndex >= 0 && newIndex < totalExcerpts) {
-        setArchiveIndex(newIndex);
-      }
-    };
-
     const currentExcerpt = PRE_GENERATED_EXCERPTS[archiveIndex];
 
     return (
       <div className="flex-1 flex flex-col relative overflow-hidden bg-[#fcfcfc]">
         {/* Header (Fixed) */}
         <div className="absolute top-0 left-0 right-0 z-30 px-6 pt-12 pb-4 flex items-center justify-between bg-[#fcfcfc]/90 backdrop-blur-sm border-b border-black/10">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 bg-black rounded-full" />
-            <span className="text-[12px] font-bold tracking-[0.2em] uppercase text-black">Archive</span>
-          </div>
           <button 
             onClick={() => setCurrentScreen('home')}
-            className="w-8 h-8 flex items-center justify-center text-black active:scale-90 transition-transform"
+            className="w-8 h-8 flex items-center justify-center text-black active:scale-90 transition-transform -ml-2"
           >
-            <X size={24} strokeWidth={1.5} />
+            <ChevronLeft size={24} strokeWidth={2} />
           </button>
+          
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => handleCopy(currentExcerpt.text)}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-black active:scale-90 transition-all hover:bg-black/5"
+            >
+              {isCopied ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
+            </button>
+            <button 
+              onClick={() => setCurrentScreen('poster')}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-black active:scale-90 transition-all hover:bg-black/5"
+            >
+              <Download size={18} />
+            </button>
+          </div>
         </div>
 
-        {/* Horizontal Scrollable List (One screen per item) */}
-        <div 
-          ref={archiveContainerRef}
-          onScroll={handleScroll}
-          className="relative z-10 flex-1 flex overflow-x-auto snap-x snap-mandatory no-scrollbar"
-        >
-          {PRE_GENERATED_EXCERPTS.map((excerpt, index) => {
-            const sprout = excerpt.sprout;
+        {/* Content Area (Single Item) */}
+        <div className="relative z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar pt-24 pb-32 px-6">
+          {(() => {
+            const sprout = currentExcerpt.sprout;
             if (!sprout) return null;
             
             return (
-              <div 
-                key={index}
-                className="snap-start h-full w-full flex-shrink-0 flex flex-col overflow-y-auto no-scrollbar pt-24 pb-32 px-6"
-              >
-                <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full min-h-min">
-                  
-                  {/* Top Decorative Line & Index */}
-                  <div className="flex items-center gap-4 mb-2 mt-auto">
-                    <div className="h-[1px] flex-1 bg-black" />
-                    <span className="font-serif text-3xl font-light italic text-black/30">
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                  </div>
+              <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full min-h-min">
+                
+                {/* Excerpt (The Tension Title) */}
+                <h2 className="font-serif font-black text-[22px] leading-[1.4] tracking-tight text-black mb-3 mt-auto">
+                  {renderHighlightedText(currentExcerpt.text, currentExcerpt.highlightedWords)}
+                </h2>
 
-                  {/* Source Link */}
-                  <button onClick={() => handleGoToNote(excerpt.source)} className="flex items-center gap-1.5 text-black/40 hover:text-black transition-colors mb-6 text-[13px] font-medium w-fit">
-                    <FileText size={14} />
-                    <span className="underline underline-offset-2">来自：{excerpt.source}</span>
-                  </button>
+                {/* Source Link */}
+                <button onClick={() => handleGoToNote(currentExcerpt.source)} className="flex items-center gap-1 text-black/40 hover:text-black transition-colors mb-8 text-[13px] font-medium w-fit">
+                  <span>——</span>
+                  <FileText size={12} />
+                  <span className="underline underline-offset-2">{currentExcerpt.source}</span>
+                </button>
 
-                  {/* Excerpt (The Tension Title) */}
-                  <h2 className="font-serif font-black text-[22px] leading-[1.4] tracking-tight text-black mb-6">
-                    {renderHighlightedText(excerpt.text, excerpt.highlightedWords)}
-                  </h2>
+                {/* Part 1: Why */}
+                <p className="font-sans font-bold text-[14px] leading-relaxed text-black mb-6 border-l-2 border-black pl-4">
+                  {sprout.part1}
+                </p>
 
-                  {/* Part 1: Why */}
-                  <p className="font-sans font-bold text-[14px] leading-relaxed text-black mb-6 border-l-2 border-black pl-4">
-                    {sprout.part1}
-                  </p>
-
-                  {/* Part 2: Explanation (Drop Cap) */}
-                  <div className="font-serif text-[15px] leading-[1.8] text-gray-800 mb-8 text-justify
-                    first-letter:text-5xl first-letter:font-black first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-none">
-                    {sprout.part2}
-                  </div>
-
-                  {/* Part 3: Aha Moment */}
-                  <div className="mb-auto">
-                    <div className="border-t border-b border-black/10 py-4">
-                      <p className="font-serif font-medium italic text-[14px] leading-relaxed text-black text-center">
-                        "{sprout.part3}"
-                      </p>
-                    </div>
-                  </div>
-
+                {/* Part 2: Explanation (Paragraphs) */}
+                <div className="font-serif text-[15px] leading-[1.8] text-gray-800 mb-8 text-justify space-y-4">
+                  {sprout.part2.split('。').filter(Boolean).map((sentence, i) => (
+                    <p key={i}>
+                      {sentence}。
+                    </p>
+                  ))}
                 </div>
+
+                {/* Part 3: Aha Moment */}
+                <div className="mb-auto">
+                  <div className="border-t border-b border-black/10 py-4">
+                    <p className="font-serif font-medium italic text-[14px] leading-relaxed text-black text-left">
+                      "{sprout.part3}"
+                    </p>
+                  </div>
+                </div>
+
               </div>
             );
-          })}
+          })()}
         </div>
 
         {/* Global Actions (Fixed at bottom) */}
         <div className="absolute bottom-0 left-0 right-0 z-30 px-6 pt-4 pb-8 bg-gradient-to-t from-[#fcfcfc] via-[#fcfcfc]/90 to-transparent pointer-events-none">
-          <div className="flex items-center justify-between w-full max-w-[340px] mx-auto pointer-events-auto">
-            <div className="flex gap-3">
-              <button 
-                onClick={() => handleCopy(currentExcerpt.text)}
-                className="w-12 h-12 rounded-full border border-black flex items-center justify-center text-black active:scale-90 transition-all hover:bg-black/5 bg-[#fcfcfc]"
-              >
-                {isCopied ? <Check size={20} className="text-emerald-600" /> : <Copy size={20} />}
-              </button>
-              <button 
-                onClick={() => setCurrentScreen('poster')}
-                className="w-12 h-12 rounded-full border border-black flex items-center justify-center text-black active:scale-90 transition-all hover:bg-black/5 bg-[#fcfcfc]"
-              >
-                <Download size={20} />
-              </button>
-            </div>
+          <div className="flex items-center justify-center w-full max-w-[340px] mx-auto pointer-events-auto gap-3">
+            <button 
+              onClick={() => setCurrentScreen('square')}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 rounded-full bg-white text-black shadow-lg border border-gray-200 active:scale-95 transition-all hover:bg-gray-50"
+            >
+              <Grid size={18} />
+              <span className="text-[15px] font-bold">今日广场</span>
+            </button>
 
             <button 
               onClick={() => {
@@ -1368,7 +1407,7 @@ export default function App() {
                 setIsReferenceVisible(true);
                 setCurrentScreen('chat');
               }}
-              className="flex items-center gap-2 px-6 py-3 rounded-full bg-black text-white shadow-xl active:scale-95 transition-all hover:bg-gray-900"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 rounded-full bg-black text-white shadow-xl active:scale-95 transition-all hover:bg-gray-900"
             >
               <div className="w-5 h-5 flex items-center justify-center shrink-0">
                 <img 
@@ -1378,7 +1417,7 @@ export default function App() {
                   referrerPolicy="no-referrer"
                 />
               </div>
-              <span className="text-[14px] font-bold">回顾</span>
+              <span className="text-[15px] font-bold">聊一聊</span>
             </button>
           </div>
         </div>
@@ -2271,6 +2310,7 @@ export default function App() {
         {currentScreen === 'editor' && renderEditor()}
         {currentScreen === 'chat' && renderChat()}
         {currentScreen === 'archive' && renderArchive()}
+        {currentScreen === 'square' && renderSquare()}
         {currentScreen === 'poster' && renderPosterScreen()}
 
         {/* FAB and Create Menu */}
@@ -2303,7 +2343,7 @@ export default function App() {
                       hidden: { opacity: 0, y: 20 },
                       visible: { opacity: 1, y: 0 }
                     }}
-                    className="w-full pointer-events-auto flex flex-col relative gap-3 mb-1"
+                    className="w-full pointer-events-auto flex flex-col relative gap-3 mb-3"
                   >
                     <AnimatePresence mode="popLayout">
                       {createMenuState === 'default' && (
@@ -2315,8 +2355,7 @@ export default function App() {
                               opacity: 1, 
                               transition: {
                                 duration: 0.2,
-                                ease: "easeOut",
-                                staggerChildren: 0.05,
+                                ease: "easeOut"
                               }
                             }
                           }}
@@ -2326,10 +2365,11 @@ export default function App() {
                           {/* 启发式笔记 - 高端黑金卡片 */}
                           <motion.button 
                             variants={{
-                              hidden: { opacity: 0 },
-                              visible: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } }
+                              hidden: { opacity: 0, y: 15 },
+                              visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1], delay: 0 } }
                             }}
-                            className="w-full h-[120px] rounded-[32px] bg-[#1a1a1a] relative overflow-hidden flex items-center shadow-2xl active:scale-[0.98] transition-transform group px-8"
+                            whileTap={{ scale: 0.98 }}
+                            className="w-full h-[120px] rounded-[32px] bg-[#1a1a1a] relative overflow-hidden flex items-center shadow-2xl group px-8"
                           >
                             <div className="flex flex-col items-start text-left z-10">
                               <div className="flex items-center gap-1.5 mb-2">
@@ -2360,10 +2400,11 @@ export default function App() {
                           <div className="grid grid-cols-2 gap-3">
                             <motion.button 
                               variants={{
-                                hidden: { opacity: 0 },
-                                visible: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } }
+                                hidden: { opacity: 0, y: 15 },
+                                visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1], delay: 0.05 } }
                               }}
-                              className="h-[100px] rounded-[32px] bg-white/80 backdrop-blur-md p-5 flex flex-col items-start justify-between shadow-sm border border-white/40 active:scale-[0.96] transition-transform"
+                              whileTap={{ scale: 0.96 }}
+                              className="h-[100px] rounded-[32px] bg-white/80 backdrop-blur-md p-5 flex flex-col items-start justify-between shadow-sm border border-white/40"
                             >
                               <div className="w-6 h-6 flex items-center justify-center">
                                 <img src="https://cdn.phototourl.com/member/2026-04-02-ebc43aa3-3847-4212-9e91-4c697a3a980f.png" alt="会议笔记" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
@@ -2376,10 +2417,11 @@ export default function App() {
 
                             <motion.button 
                               variants={{
-                                hidden: { opacity: 0 },
-                                visible: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } }
+                                hidden: { opacity: 0, y: 15 },
+                                visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1], delay: 0.1 } }
                               }}
-                              className="h-[100px] rounded-[32px] bg-white/80 backdrop-blur-md p-5 flex flex-col items-start justify-between shadow-sm border border-white/40 active:scale-[0.96] transition-transform"
+                              whileTap={{ scale: 0.96 }}
+                              className="h-[100px] rounded-[32px] bg-white/80 backdrop-blur-md p-5 flex flex-col items-start justify-between shadow-sm border border-white/40"
                             >
                               <div className="w-6 h-6 flex items-center justify-center">
                                 <img src="https://cdn.phototourl.com/member/2026-04-02-ea81de41-9157-4146-9d8f-197fdf4ec40d.png" alt="口述记" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
@@ -2395,11 +2437,12 @@ export default function App() {
                           <div className="grid grid-cols-2 gap-3">
                             <motion.button 
                               variants={{
-                                hidden: { opacity: 0 },
-                                visible: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } }
+                                hidden: { opacity: 0, y: 15 },
+                                visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1], delay: 0.15 } }
                               }}
+                              whileTap={{ scale: 0.96 }}
                               onClick={() => {}}
-                              className="h-[64px] rounded-[24px] bg-white/80 backdrop-blur-md px-6 flex items-center gap-3 shadow-sm border border-white/40 active:scale-[0.96] transition-transform"
+                              className="h-[64px] rounded-[24px] bg-white/80 backdrop-blur-md px-6 flex items-center gap-3 shadow-sm border border-white/40"
                             >
                               <div className="w-6 h-6 flex items-center justify-center">
                                 <img src="https://cdn.phototourl.com/member/2026-04-02-9361b076-4eea-4c70-87bf-50ccc55e944e.png" alt="空白笔记" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
@@ -2409,11 +2452,12 @@ export default function App() {
 
                             <motion.button 
                               variants={{
-                                hidden: { opacity: 0 },
-                                visible: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } }
+                                hidden: { opacity: 0, y: 15 },
+                                visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1], delay: 0.2 } }
                               }}
+                              whileTap={{ scale: 0.96 }}
                               onClick={() => {}}
-                              className="h-[64px] rounded-[24px] bg-white/80 backdrop-blur-md px-6 flex items-center gap-3 shadow-sm border border-white/40 active:scale-[0.96] transition-transform"
+                              className="h-[64px] rounded-[24px] bg-white/80 backdrop-blur-md px-6 flex items-center gap-3 shadow-sm border border-white/40"
                             >
                               <div className="w-6 h-6 flex items-center justify-center">
                                 <img src="https://cdn.phototourl.com/member/2026-04-02-68cddbca-54b8-41f4-9575-4e7287c85daa.png" alt="更多" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
