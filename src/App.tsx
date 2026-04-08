@@ -591,31 +591,7 @@ export default function App() {
   };
 
   const renderHighlightedText = (text: string, highlightedWords: string[] = []) => {
-    if (!highlightedWords.length) return text;
-    
-    let parts: { text: string; isHighlight: boolean }[] = [{ text, isHighlight: false }];
-    
-    highlightedWords.forEach(word => {
-      const newParts: { text: string; isHighlight: boolean }[] = [];
-      parts.forEach(part => {
-        if (part.isHighlight) {
-          newParts.push(part);
-        } else {
-          const splitParts = part.text.split(word);
-          splitParts.forEach((sp, i) => {
-            if (sp) newParts.push({ text: sp, isHighlight: false });
-            if (i < splitParts.length - 1) newParts.push({ text: word, isHighlight: true });
-          });
-        }
-      });
-      parts = newParts;
-    });
-
-    return parts.map((part, i) => (
-      <span key={i} className={part.isHighlight ? (displayMetadata.highlightColor || "text-gray-900") : ""}>
-        {part.text}
-      </span>
-    ));
+    return text;
   };
   
   // Navigation State
@@ -1225,9 +1201,6 @@ export default function App() {
   }, [archiveIndex]);
 
   const renderSquare = () => {
-    const col1 = PRE_GENERATED_EXCERPTS.filter((_, i) => i % 2 === 0);
-    const col2 = PRE_GENERATED_EXCERPTS.filter((_, i) => i % 2 === 1);
-
     return (
       <div className="flex-1 flex flex-col bg-[#f5f5f5] h-full overflow-hidden relative">
         <div className="px-6 pt-12 pb-4 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-gray-200 z-20 absolute top-0 left-0 right-0">
@@ -1237,58 +1210,32 @@ export default function App() {
           >
             <ChevronLeft size={24} strokeWidth={2} />
           </button>
-          <span className="font-bold text-[16px]">今日广场</span>
+          <span className="font-bold text-[16px]">今日回响</span>
           <div className="w-8"></div>
         </div>
         
-        <div className="flex-1 overflow-y-auto no-scrollbar pt-28 pb-8 px-2">
-          <div className="flex gap-2 items-start">
-            <div className="flex-1 flex flex-col gap-2">
-              {col1.map((excerpt, idx) => {
-                const originalIndex = idx * 2;
-                return (
-                  <div 
-                    key={`col1-${idx}`} 
-                    onClick={() => { 
-                      setArchiveIndex(originalIndex); 
-                      setCurrentScreen('archive'); 
-                    }} 
-                    className="bg-white rounded-2xl p-4 shadow-sm active:scale-95 transition-transform cursor-pointer border border-gray-100"
-                  >
-                    <p className="font-serif font-bold text-[15px] leading-snug mb-3">
-                      {renderHighlightedText(excerpt.text, excerpt.highlightedWords)}
-                    </p>
-                    <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                      <FileText size={10} />
-                      <span className="truncate">{excerpt.source}</span>
-                    </div>
+        <div className="flex-1 overflow-y-auto no-scrollbar pt-28 pb-8 px-4">
+          <div className="flex flex-col gap-4 max-w-md mx-auto w-full">
+            {PRE_GENERATED_EXCERPTS.map((excerpt, idx) => {
+              return (
+                <div 
+                  key={`excerpt-${idx}`} 
+                  onClick={() => { 
+                    setArchiveIndex(idx); 
+                    setCurrentScreen('archive'); 
+                  }} 
+                  className="bg-white rounded-2xl p-5 shadow-sm active:scale-95 transition-transform cursor-pointer border border-gray-100"
+                >
+                  <p className="font-serif font-bold text-[16px] leading-relaxed mb-4">
+                    {renderHighlightedText(excerpt.text, excerpt.highlightedWords)}
+                  </p>
+                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                    <FileText size={12} />
+                    <span className="truncate">{excerpt.source}</span>
                   </div>
-                );
-              })}
-            </div>
-            <div className="flex-1 flex flex-col gap-2">
-              {col2.map((excerpt, idx) => {
-                const originalIndex = idx * 2 + 1;
-                return (
-                  <div 
-                    key={`col2-${idx}`} 
-                    onClick={() => { 
-                      setArchiveIndex(originalIndex); 
-                      setCurrentScreen('archive'); 
-                    }} 
-                    className="bg-white rounded-2xl p-4 shadow-sm active:scale-95 transition-transform cursor-pointer border border-gray-100"
-                  >
-                    <p className="font-serif font-bold text-[15px] leading-snug mb-3">
-                      {renderHighlightedText(excerpt.text, excerpt.highlightedWords)}
-                    </p>
-                    <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                      <FileText size={10} />
-                      <span className="truncate">{excerpt.source}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1396,7 +1343,7 @@ export default function App() {
               className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 rounded-full bg-white text-black shadow-lg border border-gray-200 active:scale-95 transition-all hover:bg-gray-50"
             >
               <Grid size={18} />
-              <span className="text-[15px] font-bold">今日广场</span>
+              <span className="text-[15px] font-bold">今日回响</span>
             </button>
 
             <button 
