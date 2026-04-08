@@ -1241,9 +1241,9 @@ export default function App() {
           <div className="w-8"></div>
         </div>
         
-        <div className="flex-1 overflow-y-auto no-scrollbar pt-28 pb-8 px-4">
-          <div className="flex gap-4 items-start">
-            <div className="flex-1 flex flex-col gap-4">
+        <div className="flex-1 overflow-y-auto no-scrollbar pt-28 pb-8 px-2">
+          <div className="flex gap-2 items-start">
+            <div className="flex-1 flex flex-col gap-2">
               {col1.map((excerpt, idx) => {
                 const originalIndex = idx * 2;
                 return (
@@ -1266,7 +1266,7 @@ export default function App() {
                 );
               })}
             </div>
-            <div className="flex-1 flex flex-col gap-4">
+            <div className="flex-1 flex flex-col gap-2">
               {col2.map((excerpt, idx) => {
                 const originalIndex = idx * 2 + 1;
                 return (
@@ -2314,7 +2314,7 @@ export default function App() {
         {currentScreen === 'poster' && renderPosterScreen()}
 
         {/* FAB and Create Menu */}
-        {currentScreen !== 'editor' && currentScreen !== 'chat' && currentScreen !== 'archive' && currentScreen !== 'poster' && !isMultiSelectMode && (
+        {currentScreen !== 'editor' && currentScreen !== 'chat' && currentScreen !== 'archive' && currentScreen !== 'poster' && currentScreen !== 'square' && !isMultiSelectMode && (
           <>
             <AnimatePresence>
               {isCreateMenuOpen && (
@@ -2375,8 +2375,8 @@ export default function App() {
                               <div className="flex items-center gap-1.5 mb-2">
                                 <Sparkles size={14} className="text-orange-500 fill-orange-500" />
                               </div>
-                              <span className="text-[16px] font-bold text-white tracking-tight leading-none">启发式笔记</span>
-                              <span className="text-[10px] text-white/50 mt-2 font-medium">AI 访谈，妙想成文</span>
+                              <span className="text-[16px] font-bold text-white tracking-tight leading-none">会议笔记</span>
+                              <span className="text-[10px] text-white/50 mt-2 font-medium">记录思考，自动成稿</span>
                             </div>
 
                             {/* Mascot Icon - Positioned Right like reference */}
@@ -2404,14 +2404,14 @@ export default function App() {
                                 visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1], delay: 0.05 } }
                               }}
                               whileTap={{ scale: 0.96 }}
-                              className="h-[100px] rounded-[32px] bg-white/80 backdrop-blur-md p-5 flex flex-col items-start justify-between shadow-sm border border-white/40"
+                              className="h-[112px] rounded-[32px] bg-white/80 backdrop-blur-md p-5 flex flex-col items-start justify-between shadow-sm border border-white/40"
                             >
                               <div className="w-6 h-6 flex items-center justify-center">
                                 <img src="https://cdn.phototourl.com/member/2026-04-02-ebc43aa3-3847-4212-9e91-4c697a3a980f.png" alt="会议笔记" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                               </div>
                               <div className="text-left">
-                                <p className="font-bold text-[15px] text-gray-900">会议笔记</p>
-                                <p className="text-[10px] text-gray-400 mt-1 leading-tight">记录思考，自动成稿</p>
+                                <p className="font-bold text-[15px] text-gray-900">启发笔记</p>
+                                <p className="text-[10px] text-gray-400 mt-1 leading-tight">AI 访谈，妙想成文</p>
                               </div>
                             </motion.button>
 
@@ -2421,7 +2421,7 @@ export default function App() {
                                 visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1], delay: 0.1 } }
                               }}
                               whileTap={{ scale: 0.96 }}
-                              className="h-[100px] rounded-[32px] bg-white/80 backdrop-blur-md p-5 flex flex-col items-start justify-between shadow-sm border border-white/40"
+                              className="h-[112px] rounded-[32px] bg-white/80 backdrop-blur-md p-5 flex flex-col items-start justify-between shadow-sm border border-white/40"
                             >
                               <div className="w-6 h-6 flex items-center justify-center">
                                 <img src="https://cdn.phototourl.com/member/2026-04-02-ea81de41-9157-4146-9d8f-197fdf4ec40d.png" alt="口述记" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
