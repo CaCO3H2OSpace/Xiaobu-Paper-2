@@ -1287,16 +1287,16 @@ export default function App() {
         </div>
 
         {/* Content Area (Single Item) */}
-        <div className="relative z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar pt-24 pb-32 px-6">
+        <div className="relative z-10 flex-1 flex flex-col overflow-y-auto no-scrollbar pt-28 pb-32 px-6">
           {(() => {
             const sprout = currentExcerpt.sprout;
             if (!sprout) return null;
             
             return (
-              <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full min-h-min">
+              <div className="flex-1 flex flex-col max-w-md mx-auto w-full min-h-min">
                 
                 {/* Excerpt (The Tension Title) */}
-                <h2 className="font-serif font-black text-[22px] leading-[1.4] tracking-tight text-black mb-3 mt-auto">
+                <h2 className="font-serif font-black text-[22px] leading-[1.4] tracking-tight text-black mb-3">
                   {renderHighlightedText(currentExcerpt.text, currentExcerpt.highlightedWords)}
                 </h2>
 
@@ -1322,7 +1322,7 @@ export default function App() {
                 </div>
 
                 {/* Part 3: Aha Moment */}
-                <div className="mb-auto">
+                <div className="mt-4">
                   <div className="border-t border-b border-black/10 py-4">
                     <p className="font-serif font-medium italic text-[14px] leading-relaxed text-black text-left">
                       "{sprout.part3}"
