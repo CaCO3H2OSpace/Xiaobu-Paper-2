@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Pause, Play, Square, Camera, X } from 'lucide-react';
+import { Pause, Play, Check, X } from 'lucide-react';
 
 interface VoiceRecordingPanelProps {
   isOpen: boolean;
@@ -16,7 +16,6 @@ export default function VoiceRecordingPanel({ isOpen, onClose, onComplete }: Voi
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Timer logic
   useEffect(() => {
@@ -53,16 +52,10 @@ export default function VoiceRecordingPanel({ isOpen, onClose, onComplete }: Voi
 
   const pauseRecording = () => {
     setRecordingState('paused');
-    if (audioContextRef.current?.state === 'running') {
-      audioContextRef.current.suspend();
-    }
   };
 
   const resumeRecording = () => {
     setRecordingState('recording');
-    if (audioContextRef.current?.state === 'suspended') {
-      audioContextRef.current.resume();
-    }
   };
 
   const stopRecording = () => {
@@ -71,7 +64,7 @@ export default function VoiceRecordingPanel({ isOpen, onClose, onComplete }: Voi
       streamRef.current = null;
     }
     if (audioContextRef.current) {
-      audioContextRef.current.close();
+      audioContextRef.current.close().catch(console.error);
       audioContextRef.current = null;
     }
     if (animationFrameRef.current) {
@@ -93,18 +86,6 @@ export default function VoiceRecordingPanel({ isOpen, onClose, onComplete }: Voi
     onClose();
   };
 
-  const handleCameraClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      console.log("Captured image:", file.name);
-      // In a real app, you would handle the file upload or attachment here
-    }
-  };
-
   useEffect(() => {
     if (isOpen && recordingState === 'idle') {
       startRecording();
@@ -119,7 +100,7 @@ export default function VoiceRecordingPanel({ isOpen, onClose, onComplete }: Voi
     };
   }, [isOpen]);
 
-  // Visualization logic
+  // Visualization logic (Bar Waveform)
   const drawWaveform = () => {
     if (!canvasRef.current || !analyserRef.current) return;
     const canvas = canvasRef.current;
@@ -130,24 +111,14 @@ export default function VoiceRecordingPanel({ isOpen, onClose, onComplete }: Voi
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
 
-    let phase = 0;
-
     const draw = () => {
-      if (recordingState === 'paused') {
-        animationFrameRef.current = requestAnimationFrame(draw);
-        return;
-      }
-
       animationFrameRef.current = requestAnimationFrame(draw);
-      analyser.getByteFrequencyData(dataArray);
-
-      // Calculate average volume
-      let sum = 0;
-      for (let i = 0; i < bufferLength; i++) {
-        sum += dataArray[i];
+      
+      if (recordingState === 'paused') {
+        return; // maintain current frame
       }
-      const avgVolume = sum / bufferLength / 255;
-      const targetAmplitude = Math.max(0.1, avgVolume * 2);
+
+      analyser.getByteFrequencyData(dataArray);
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -155,41 +126,27 @@ export default function VoiceRecordingPanel({ isOpen, onClose, onComplete }: Voi
       const height = canvas.height;
       const centerY = height / 2;
 
-      phase += 0.05;
+      const barWidth = 3;
+      const gap = 4;
+      const numBars = Math.floor(width / (barWidth + gap));
+      const startX = (width - numBars * (barWidth + gap)) / 2;
 
-      const lines = 6;
-      for (let i = 0; i < lines; i++) {
+      ctx.fillStyle = '#111827'; // Dark gray color
+      ctx.lineCap = 'round';
+
+      for (let i = 0; i < numBars; i++) {
+        // Select frequencies spread across the spectrum
+        const dataIndex = Math.floor((i / numBars) * (bufferLength / 2));
+        let val = dataArray[dataIndex] / 255;
+        
+        let barHeight = Math.max(2, val * height * 0.8);
+        
+        const x = startX + i * (barWidth + gap);
+        const y = centerY - barHeight / 2;
+
         ctx.beginPath();
-        
-        const progress = i / (lines - 1);
-        
-        const gradient = ctx.createLinearGradient(0, 0, width, 0);
-        gradient.addColorStop(0, `rgba(0, 0, 0, ${0.1 + progress * 0.4})`); // black
-        gradient.addColorStop(0.5, `rgba(75, 85, 99, ${0.2 + progress * 0.6})`); // dark gray
-        gradient.addColorStop(1, `rgba(0, 0, 0, ${0.1 + progress * 0.4})`);
-
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = i === Math.floor(lines / 2) ? 3 : 1.5;
-
-        for (let x = 0; x < width; x += 2) {
-          const nx = (x / width) * 2 - 1;
-          const attenuation = Math.exp(-Math.pow(nx, 2) * 4);
-          
-          const freq = 2 + i * 0.5;
-          const linePhase = phase * (1 + i * 0.2) + i * Math.PI / 3;
-          
-          const wave1 = Math.sin(nx * Math.PI * freq + linePhase);
-          const wave2 = Math.sin(nx * Math.PI * (freq * 1.5) - linePhase * 0.8);
-          
-          const yOffset = (wave1 + wave2 * 0.5) * targetAmplitude * height * 0.4 * attenuation;
-          
-          if (x === 0) {
-            ctx.moveTo(x, centerY + yOffset);
-          } else {
-            ctx.lineTo(x, centerY + yOffset);
-          }
-        }
-        ctx.stroke();
+        ctx.roundRect(x, y, barWidth, barHeight, barWidth / 2);
+        ctx.fill();
       }
     };
 
@@ -205,64 +162,65 @@ export default function VoiceRecordingPanel({ isOpen, onClose, onComplete }: Voi
     let phase = 0;
 
     const draw = () => {
+      animationFrameRef.current = requestAnimationFrame(draw);
+      
       if (recordingState === 'paused') {
-        animationFrameRef.current = requestAnimationFrame(draw);
         return;
       }
 
-      animationFrameRef.current = requestAnimationFrame(draw);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const width = canvas.width;
       const height = canvas.height;
       const centerY = height / 2;
 
-      phase += 0.05;
+      phase += 0.15;
 
-      const targetAmplitude = 0.2 + Math.sin(phase * 0.5) * 0.1 + Math.random() * 0.05;
+      const barWidth = 3;
+      const gap = 3;
+      const numBars = Math.floor(width / (barWidth + gap));
+      const startX = (width - numBars * (barWidth + gap)) / 2;
 
-      const lines = 6;
-      for (let i = 0; i < lines; i++) {
-        ctx.beginPath();
+      ctx.fillStyle = '#111827'; // Dark gray color
+
+      for (let i = 0; i < numBars; i++) {
+        const val = Math.abs(Math.sin(phase + i * 0.2)) + Math.random() * 0.2;
+        let barHeight = Math.max(2, val * height * 0.5);
         
-        const progress = i / (lines - 1);
-        
-        const gradient = ctx.createLinearGradient(0, 0, width, 0);
-        gradient.addColorStop(0, `rgba(0, 0, 0, ${0.1 + progress * 0.4})`);
-        gradient.addColorStop(0.5, `rgba(75, 85, 99, ${0.2 + progress * 0.6})`);
-        gradient.addColorStop(1, `rgba(0, 0, 0, ${0.1 + progress * 0.4})`);
+        // Emphasize the middle
+        const distanceToCenter = Math.abs(i - numBars / 2) / (numBars / 2);
+        barHeight = barHeight * (1 - distanceToCenter * 0.8);
 
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = i === Math.floor(lines / 2) ? 3 : 1.5;
-
-        for (let x = 0; x < width; x += 2) {
-          const nx = (x / width) * 2 - 1;
-          const attenuation = Math.exp(-Math.pow(nx, 2) * 4);
-          
-          const freq = 2 + i * 0.5;
-          const linePhase = phase * (1 + i * 0.2) + i * Math.PI / 3;
-          
-          const wave1 = Math.sin(nx * Math.PI * freq + linePhase);
-          const wave2 = Math.sin(nx * Math.PI * (freq * 1.5) - linePhase * 0.8);
-          
-          const yOffset = (wave1 + wave2 * 0.5) * targetAmplitude * height * 0.4 * attenuation;
-          
-          if (x === 0) {
-            ctx.moveTo(x, centerY + yOffset);
-          } else {
-            ctx.lineTo(x, centerY + yOffset);
-          }
+        // Highlight center bar as in the reference image (orange)
+        if (i === Math.floor(numBars/2)) {
+           ctx.fillStyle = '#f97316';
+        } else if (i > Math.floor(numBars/2)) {
+           ctx.fillStyle = '#e5e7eb'; // Lighter gray for past
+        } else {
+           ctx.fillStyle = '#111827';
         }
-        ctx.stroke();
+
+
+        const x = startX + i * (barWidth + gap);
+        const y = centerY - barHeight / 2;
+
+        ctx.beginPath();
+        ctx.roundRect(x, y, barWidth, barHeight, barWidth / 2);
+        ctx.fill();
       }
     };
     draw();
   };
 
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
     const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}: ${s}`;
+    if (h > 0) {
+      return `${h.toString().padStart(2, '0')}:${m}:${s}`;
+    }
+    // As per the reference image, it shows 00:24:15, so hh:mm:ss format
+    return `00:${m}:${s}`;
   };
 
   return (
@@ -274,93 +232,75 @@ export default function VoiceRecordingPanel({ isOpen, onClose, onComplete }: Voi
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleCancel}
-            className="absolute inset-0 bg-gradient-to-t from-white/95 via-white/80 to-white/0 z-[60] pointer-events-auto"
+            className="absolute inset-0 bg-black/40 z-[60] pointer-events-auto"
           />
-          <div className="absolute bottom-[calc(2.5rem+env(safe-area-inset-bottom))] left-6 right-6 z-[70] flex flex-col pointer-events-none">
+          <div className="absolute bottom-0 left-0 right-0 z-[70] flex flex-col pointer-events-none">
             <motion.div
-              layoutId="voice-panel"
-              className="w-full bg-white/95 backdrop-blur-xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/80 flex flex-col pointer-events-auto overflow-hidden"
-              style={{ borderRadius: 24 }}
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="w-full bg-[#fcfcfc] rounded-t-[32px] pt-10 pb-[env(safe-area-inset-bottom)] shadow-2xl flex flex-col pointer-events-auto overflow-hidden"
+              style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}
             >
-              <motion.div
-                initial={{ opacity: 0, filter: 'blur(4px)' }}
-                animate={{ opacity: 1, filter: 'blur(0px)' }}
-                transition={{ delay: 0.15, duration: 0.3 }}
-                className="flex flex-col w-full"
-              >
-                {/* Top Row: Timer and Close */}
-                <div className="w-full flex justify-between items-center mb-2 px-1">
-                  <div className="flex items-center gap-3">
-                    <motion.div 
-                      animate={{ opacity: recordingState === 'recording' ? [1, 0.2, 1] : 0.5 }} 
-                      transition={{ repeat: Infinity, duration: 1.5 }} 
-                      className={`w-2.5 h-2.5 rounded-full ${recordingState === 'recording' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' : 'bg-gray-400'}`} 
-                    />
-                    <div className="text-[42px] leading-none font-light text-gray-800 tracking-tight font-sans">
-                      {formatTime(duration)}
-                    </div>
-                  </div>
-                  <button onClick={handleCancel} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors -mr-2">
-                    <X size={24} />
-                  </button>
+              <div className="flex flex-col items-center w-full px-8">
+                
+                {/* Timer */}
+                <div className="text-[40px] font-bold text-gray-900 tracking-tight font-sans mb-2">
+                  {formatTime(duration)}
+                </div>
+                
+                {/* Subtitle */}
+                <div className="text-[14px] text-gray-500 font-medium tracking-wide mb-12">
+                  慢慢说，不用着急，我在听
                 </div>
 
                 {/* Visualization Canvas */}
-                <div className="w-full h-40 my-4 relative flex items-center justify-center overflow-visible">
+                <div className="w-full h-[60px] relative flex items-center justify-center overflow-visible mb-12">
                   <canvas
                     ref={canvasRef}
-                    width={300}
-                    height={160}
+                    width={320}
+                    height={80}
                     className="w-full h-full relative z-10"
                   />
                 </div>
 
-                {/* Bottom Row: Camera, Pause, Complete */}
-                <div className="w-full flex items-center justify-between px-1 mt-2">
-                  {/* Left: Camera */}
+                {/* Bottom Controls */}
+                <div className="flex items-center justify-center gap-6 w-full max-w-[280px]">
+                  {/* Cancel Button */}
                   <button
-                    onClick={handleCameraClick}
-                    className="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
+                    onClick={handleCancel}
+                    className="w-14 h-14 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-800 hover:bg-gray-50 active:scale-95 transition-all"
                   >
-                    <Camera size={20} />
+                    <X size={24} strokeWidth={2.5} />
                   </button>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    capture="environment" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    onChange={handleFileChange} 
-                  />
 
-                  {/* Right: Pause & Complete */}
-                  <div className="flex items-center gap-3">
-                    {recordingState === 'recording' ? (
-                      <button
-                        onClick={pauseRecording}
-                        className="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
-                      >
-                        <Pause size={20} fill="currentColor" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={resumeRecording}
-                        className="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors"
-                      >
-                        <Play size={20} fill="currentColor" className="ml-0.5" />
-                      </button>
-                    )}
+                  {/* Complete Button */}
+                  <button
+                    onClick={handleComplete}
+                    className="w-20 h-16 rounded-[28px] bg-[#222222] shadow-md flex items-center justify-center text-white hover:bg-black active:scale-95 transition-all"
+                  >
+                    <Check size={28} strokeWidth={2.5} />
+                  </button>
 
+                  {/* Pause/Resume Button */}
+                  {recordingState === 'recording' ? (
                     <button
-                      onClick={handleComplete}
-                      className="w-12 h-12 rounded-full bg-gray-900 flex items-center justify-center text-white shadow-md shadow-gray-900/20 hover:bg-black transition-colors"
+                      onClick={pauseRecording}
+                      className="w-14 h-14 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-800 hover:bg-gray-50 active:scale-95 transition-all"
                     >
-                      <Square size={16} fill="currentColor" className="rounded-sm" />
+                      <Pause size={20} fill="currentColor" />
                     </button>
-                  </div>
+                  ) : (
+                    <button
+                      onClick={resumeRecording}
+                      className="w-14 h-14 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-800 hover:bg-gray-50 active:scale-95 transition-all"
+                    >
+                      <Play size={20} fill="currentColor" className="ml-1" />
+                    </button>
+                  )}
                 </div>
-              </motion.div>
+              </div>
             </motion.div>
           </div>
         </>

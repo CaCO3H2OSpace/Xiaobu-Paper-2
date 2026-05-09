@@ -2154,8 +2154,14 @@ export default function App() {
                 <div key={index} className="min-w-full h-full flex items-center justify-center snap-center p-4">
                   <div 
                     ref={(el) => posterRefs.current[index] = el}
-                    className={`relative shrink-0 flex flex-col overflow-hidden transition-all duration-300 ${posterTheme === 'dark' ? 'bg-[#1a1a1a] text-white' : 'bg-[#fcfcfc] text-black'} ${isSquare ? 'aspect-square' : 'aspect-[3/4]'}`}
-                    style={{ height: '100%', maxHeight: '600px', width: 'auto', maxWidth: '100%' }}
+                    className={`relative shrink-0 flex flex-col overflow-hidden transition-all duration-300 ${posterTheme === 'dark' ? 'bg-[#1a1a1a] text-white' : 'bg-[#fcfcfc] text-black'}`}
+                    style={{ 
+                      aspectRatio: isSquare ? '1 / 1' : '3 / 4',
+                      width: '100%',
+                      maxWidth: isSquare ? '400px' : '375px',
+                      maxHeight: '100%',
+                      height: 'auto'
+                    }}
                   >
                     <div className={`flex flex-col h-full ${isSquare ? 'p-6' : 'p-8'}`}>
                       {page.type === 'cover' && (
@@ -2369,12 +2375,17 @@ export default function App() {
                               }}
                               whileTap={{ scale: 0.96 }}
                               className="h-[112px] rounded-[32px] bg-white/80 backdrop-blur-md p-5 flex flex-col items-start justify-between shadow-sm border border-white/40"
+                              onClick={() => {
+                                setCreateMenuState('default');
+                                setIsCreateMenuOpen(false);
+                                setIsRecordingOpen(true);
+                              }}
                             >
                               <div className="w-6 h-6 flex items-center justify-center">
-                                <img src="https://cdn.phototourl.com/member/2026-04-02-ea81de41-9157-4146-9d8f-197fdf4ec40d.png" alt="口述记" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                                <img src="https://cdn.phototourl.com/member/2026-04-02-ea81de41-9157-4146-9d8f-197fdf4ec40d.png" alt="语音速记" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                               </div>
                               <div className="text-left">
-                                <p className="font-bold text-[15px] text-gray-900">口述记</p>
+                                <p className="font-bold text-[15px] text-gray-900">语音速记</p>
                                 <p className="text-[10px] text-gray-400 mt-1 leading-tight">瞬时灵感，你说我记</p>
                               </div>
                             </motion.button>
@@ -2392,9 +2403,9 @@ export default function App() {
                               className="h-[64px] rounded-[24px] bg-white/80 backdrop-blur-md px-6 flex items-center gap-3 shadow-sm border border-white/40"
                             >
                               <div className="w-6 h-6 flex items-center justify-center">
-                                <img src="https://cdn.phototourl.com/member/2026-04-02-9361b076-4eea-4c70-87bf-50ccc55e944e.png" alt="空白笔记" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                                <img src="https://cdn.phototourl.com/member/2026-04-02-9361b076-4eea-4c70-87bf-50ccc55e944e.png" alt="文字速记" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                               </div>
-                              <span className="font-bold text-[15px] text-gray-900">空白笔记</span>
+                              <span className="font-bold text-[15px] text-gray-900">文字速记</span>
                             </motion.button>
 
                             <motion.button 
